@@ -2,35 +2,45 @@
   import { onDestroy } from 'svelte';
 
   export let platform;
+  export let started;
+
+  let timerId;
+  let direction = 1;
+
+  $: {
+    if (started) {
+      start();
+    } else {
+      stop();
+    }
+  }
 
   function start() {
-    let self = this;
-    this.stop();
-    this.timerId = setInterval(function() {
-      self.tick();
+    console.log("start");
+    stop();
+    timerId = setInterval(function() {
+      tick();
     }, 50);
   };
 
   function stop() {
-    if (this.timerId) {
-      clearInterval(this.timerId);
-      this.timerId = null;
-    }
+    console.log("stop/");
+    timerId = clearInterval(timerId);
   }
 
   function tick() {
-    let newLeft = this.left + 5 * this.direction;
+    let newLeft = platform.left + 5 * direction;
     if (newLeft <= 0 || newLeft > 700) {
-      this.direction = this.direction * -1;
+      direction = direction * -1;
     }
-    this.left = newLeft;
+    platform.left = newLeft;
   };
 
   function moveLeft() {
   }
 
   function moveRight() {
-    this.left += 5;
+    platform.left += 5;
   }
 
   onDestroy(function() {

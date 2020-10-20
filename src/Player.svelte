@@ -24,6 +24,9 @@
   export function start() {
   }
 
+  export function stop() {
+  }
+
   function stopJump() {
     jumpTimerId = clearInterval(jumpTimerId);
   }
@@ -115,7 +118,6 @@
 </script>
 
 <player style="left: {player.left}px; bottom: {player.bottom}px;">
-  {name}
 </player>
 
 <style>

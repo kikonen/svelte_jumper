@@ -1,11 +1,14 @@
 <script>
   import {onMount} from 'svelte';
+  import { createEventDispatcher } from 'svelte';
 
   import Playfield from './Playfield.svelte';
   import Player from './Player.svelte';
   import Platform from './Platform.svelte';
 
   export let name;
+
+  const dispatch = createEventDispatcher();
 
   const controls = {
     nop: function() {},
@@ -30,23 +33,42 @@
   let player;
 
   let platforms = [];
-  let platformTimerId;
 
-  function startPlatforms() {
-    platforms = [];
+  let started = false;
+
+  function createPlatforms() {
+    let newPlatforms = [];
     for (let i = 0; i < 10; i++) {
       let platform = { left: 600 * Math.random(), bottom: i * 80 };
-      platforms.push(platform);
+      newPlatforms.push(platform);
     }
+    platforms = newPlatforms;
   }
 
   function start() {
-    startPlatforms();
+    createPlatforms();
     player.start();
+    dispatch("start");
+    started = true;
+  }
+
+  function stop() {
+    platforms = [];
+    player.stop();
+    dispatch("stop");
+    started = false;
+  }
+
+  function toggleGame() {
+    if (started) {
+      stop();
+    } else {
+      start();
+    }
   }
 
   onMount(function () {
-    start();
+//    start();
   });
 
   function handleKeydown(ev) {
@@ -57,13 +79,16 @@
 <svelte:window on:keydown={handleKeydown}/>
 
 <main>
-  <Playfield>
-    <Player bind:this={player} player={playerData} />
+  <button on:click={toggleGame}>{started ? 'Stop' : 'Start'}</button>
+  <div class="game">
+    <Playfield>
+      <Player bind:this={player} player={playerData} />
 
-    {#each platforms as p}
-      <Platform platform={p} />
-    {/each}
-  </Playfield>
+      {#each platforms as p}
+        <Platform platform={p} bind:started={started} />
+      {/each}
+    </Playfield>
+  </div>
 </main>
 
 <style>
@@ -71,10 +96,20 @@
     box-sizing: border-box;
 
     text-align: center;
-    padding: 1rem;
-    max-width: 240px;
-    margin: 0 auto;
+    padding: 0.5rem;
+    width: 100%;
     height: 100%;
+    margin: 0;
+  }
+
+  .game {
+    box-sizing: border-box;
+    overflow: hidden;
+
+    text-align: center;
+    width: 100%;
+    height: 600px;
+    margin: 0;
     position: relative;
   }
 
