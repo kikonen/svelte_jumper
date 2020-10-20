@@ -25,7 +25,6 @@
   };
 
   let playerData = {
-    name: name,
     left: 20,
     bottom: 20,
   };
@@ -35,6 +34,14 @@
   let platforms = [];
 
   let started = false;
+
+  function createPlayer() {
+    playerData = {
+      name: name,
+      left: 20,
+      bottom: 20,
+    };
+  }
 
   function createPlatforms() {
     let newPlatforms = [];
@@ -47,6 +54,7 @@
 
   function start() {
     createPlatforms();
+    createPlayer();
     player.start();
     dispatch("start");
     started = true;
@@ -54,7 +62,7 @@
 
   function stop() {
     platforms = [];
-    player.stop();
+    createPlayer();
     dispatch("stop");
     started = false;
   }
