@@ -8,6 +8,7 @@
 
   export let name;
 
+  const MAX_PLATFORMS = 8;
   const dispatch = createEventDispatcher();
 
   const controls = {
@@ -24,46 +25,33 @@
     },
   };
 
-  let playerData = {
-    left: 20,
-    bottom: 20,
-  };
-
+  let playfield;
   let player;
 
+  let platformBase = 0;
   let platforms = [];
 
   let started = false;
 
-  function createPlayer() {
-    playerData = {
-      name: name,
-      left: 20,
-      bottom: 20,
-    };
+  function nextPlatformId() {
+    return ++platformBase;
   }
 
   function createPlatforms() {
-    let newPlatforms = [];
-    for (let i = 0; i < 10; i++) {
-      let platform = { left: 600 * Math.random(), bottom: i * 80 };
-      newPlatforms.push(platform);
+    platforms = [];
+    for (let i = 0; i < MAX_PLATFORMS; i++) {
+      platforms.push(nextPlatformId());
     }
-    platforms = newPlatforms;
   }
 
   function start() {
     createPlatforms();
-    createPlayer();
-    player.start();
-    dispatch("start");
+    console.log(platforms);
     started = true;
   }
 
   function stop() {
     platforms = [];
-    createPlayer();
-    dispatch("stop");
     started = false;
   }
 
@@ -76,7 +64,6 @@
   }
 
   onMount(function () {
-//    start();
   });
 
   function handleKeydown(ev) {
@@ -89,13 +76,15 @@
 <main>
   <button on:click={toggleGame}>{started ? 'Stop' : 'Start'}</button>
   <div class="game">
-    <Playfield>
-      <Player bind:this={player} player={playerData} />
+    {#if started}
+      <Playfield bind:this={playfield} >
+        <Player bind:this={player} bind:platforms={platforms} playfield={playfield}/>
 
-      {#each platforms as p}
-        <Platform platform={p} bind:started={started} />
-      {/each}
-    </Playfield>
+        {#each platforms as p, index}
+          <Platform id={p} index={index} playfield={playfield} />
+        {/each}
+      </Playfield>
+     {/if}
   </div>
 </main>
 
