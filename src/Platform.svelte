@@ -2,7 +2,8 @@
   import { onMount } from 'svelte';
   import { onDestroy } from 'svelte';
 
-  export let id;
+  export let physics;
+  export let platform;
   export let index;
   export let playfield;
 
@@ -15,13 +16,15 @@
   let direction = 1;
   let speed = 0;
 
+  $: platform.left = left;
+  $: platform.bottom = bottom;
 
   function getMaxLeft() {
     return el.parentNode.clientWidth - el.clientWidth;
   }
 
   function start() {
-    console.log(`start: ${id}`);
+    console.log(`start: ${platform.id}`);
     stop();
     timerId = setInterval(function() {
       tick();
@@ -29,7 +32,7 @@
   };
 
   function stop() {
-    console.log(`stop: ${id}`);
+    console.log(`stop: ${platform.id}`);
     timerId = clearInterval(timerId);
   }
 
@@ -51,6 +54,7 @@
   }
 
   onMount(function() {
+    platform.width = el.clientWidth;
     left = getMaxLeft() * Math.random();
     bottom = index * 80;
     speed = 40 + 10 * Math.random();
@@ -58,7 +62,7 @@
   });
 
   onDestroy(function() {
-    console.log(`destroy platform: ${id}`);
+    console.log(`destroy platform: ${platform.id}`);
     stop();
   });
 </script>

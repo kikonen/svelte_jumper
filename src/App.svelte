@@ -2,6 +2,8 @@
   import {onMount} from 'svelte';
   import { createEventDispatcher } from 'svelte';
 
+  import PhysicsEngine from './PhysicsEngine.js';
+
   import Playfield from './Playfield.svelte';
   import Player from './Player.svelte';
   import Platform from './Platform.svelte';
@@ -25,28 +27,30 @@
     },
   };
 
-  let playfield;
-  let player;
 
-  let platformBase = 0;
+  let idBase = 0;
+
+  let physics;
+
+  let player = {}
   let platforms = [];
 
   let started = false;
 
-  function nextPlatformId() {
-    return ++platformBase;
+  function nextId() {
+    return ++idBase;
   }
 
   function createPlatforms() {
     platforms = [];
     for (let i = 0; i < MAX_PLATFORMS; i++) {
-      platforms.push(nextPlatformId());
+      platforms.push({ id: nextId() });
     }
   }
 
   function start() {
+    physics = new PhysicsEngine();
     createPlatforms();
-    console.log(platforms);
     started = true;
   }
 
@@ -77,11 +81,11 @@
   <button on:click={toggleGame}>{started ? 'Stop' : 'Start'}</button>
   <div class="game">
     {#if started}
-      <Playfield bind:this={playfield} >
-        <Player bind:this={player} bind:platforms={platforms} playfield={playfield}/>
+      <Playfield physics={physics} >
+        <Player physics={physics}/>
 
         {#each platforms as p, index}
-          <Platform id={p} index={index} playfield={playfield} />
+          <Platform platform={p} index={index} physics={physics} />
         {/each}
       </Playfield>
      {/if}

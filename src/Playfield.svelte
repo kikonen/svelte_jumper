@@ -1,7 +1,19 @@
 <script>
+  import { onMount } from 'svelte';
+  import { onDestroy } from 'svelte';
+
+  export let physics;
+
+  let el;
+
+  onMount(function() {
+  });
+
+  onDestroy(function() {
+  });
 </script>
 
-<playfield>
+<playfield bind:this={el}>
   <slot></slot>
 </playfield>
 

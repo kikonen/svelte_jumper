@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { onDestroy } from 'svelte';
 
+  export let physics;
   export let playfield;
   export let platforms;
 
@@ -77,6 +78,7 @@
     stopJump();
     stopFall();
 
+    gravity = GRAVITY;
     jumpHeight = 0;
     jumpStart = bottom;
 
@@ -112,6 +114,7 @@
     friction = FRICTION;
 
     let maxLeft = getMaxLeft();
+    console.log(platforms[1]);
 
     moveTimerId = setInterval(function() {
       movement += speed * friction;
@@ -132,8 +135,9 @@
   }
 
   onMount(function() {
-    left: 20;
-    bottom: 20;
+    left = 20;
+    bottom = 20;
+    fall();
   });
 
   onDestroy(function() {
