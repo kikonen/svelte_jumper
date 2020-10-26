@@ -27,29 +27,49 @@
     },
   };
 
+  let engine;
 
-  let idBase = 0;
+  let player;
+  let playfield;
 
-  let physics;
-
-  let player = {}
+  let playerData = {}
   let platforms = [];
 
   let started = false;
 
-  function nextId() {
-    return ++idBase;
+  function createPlayer() {
+    let areaW = engine.getWidth();
+
+    playerData = {
+      bottom: 80,
+      left: areaW/2 - 50/2,
+      width: 50,
+      height: 80,
+      speed: 0,
+    };
+    engine.register(playerData);
   }
 
   function createPlatforms() {
     platforms = [];
+    let areaW = engine.getWidth();
     for (let i = 0; i < MAX_PLATFORMS; i++) {
-      platforms.push({ id: nextId() });
+      let platform = {
+        bottom: i * 80,
+        left: (areaW - 100) * Math.random(),
+        width: 100,
+        height: 20,
+        speed: 40 + 10 * Math.random(),
+      };
+      engine.register(platform);
+      platforms.push(platform);
     }
   }
 
   function start() {
-    physics = new PhysicsEngine();
+    engine = new PhysicsEngine();
+    engine.registerContainer(playfield);
+    createPlayer();
     createPlatforms();
     started = true;
   }
@@ -81,11 +101,11 @@
   <button on:click={toggleGame}>{started ? 'Stop' : 'Start'}</button>
   <div class="game">
     {#if started}
-      <Playfield physics={physics} >
-        <Player physics={physics}/>
+      <Playfield bind:this={playfield} engine={engine} >
+        <Player bind:this={player} data={playerData} platforms={platforms} engine={engine} />
 
         {#each platforms as p, index}
-          <Platform platform={p} index={index} physics={physics} />
+          <Platform data={p} index={index} engine={engine} />
         {/each}
       </Playfield>
      {/if}

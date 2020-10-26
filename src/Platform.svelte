@@ -2,8 +2,8 @@
   import { onMount } from 'svelte';
   import { onDestroy } from 'svelte';
 
-  export let physics;
-  export let platform;
+  export let engine;
+  export let data;
   export let index;
   export let playfield;
 
@@ -11,20 +11,19 @@
 
   let left = 0;
   let bottom = 0;
+  let width = 100;
+  let height = 20;
 
   let timerId;
   let direction = 1;
   let speed = 0;
 
-  $: platform.left = left;
-  $: platform.bottom = bottom;
-
   function getMaxLeft() {
-    return el.parentNode.clientWidth - el.clientWidth;
+    return engine.getWidth() - data.width;
   }
 
   function start() {
-    console.log(`start: ${platform.id}`);
+    console.log(`start: ${data.id}`);
     stop();
     timerId = setInterval(function() {
       tick();
@@ -32,7 +31,7 @@
   };
 
   function stop() {
-    console.log(`stop: ${platform.id}`);
+    console.log(`stop: ${data.id}`);
     timerId = clearInterval(timerId);
   }
 
@@ -40,7 +39,7 @@
     let newLeft = left + 5 * direction;
     let maxLeft = getMaxLeft();
     if (newLeft <= 0 || newLeft > maxLeft) {
-      newLeft = newLeft < 0 ? 0 : maxLeft;
+      newLeft = newLeft <= 0 ? 0 : maxLeft;
       direction = direction * -1;
     }
     left = newLeft;
@@ -54,27 +53,26 @@
   }
 
   onMount(function() {
-    platform.width = el.clientWidth;
-    left = getMaxLeft() * Math.random();
-    bottom = index * 80;
-    speed = 40 + 10 * Math.random();
+    width = data.width;
+    height = data.height;
+    left = data.left;
+    bottom = data.bottom;
+    speed = data.speed;
     start();
   });
 
   onDestroy(function() {
-    console.log(`destroy platform: ${platform.id}`);
+    console.log(`destroy data: ${data.id}`);
     stop();
   });
 </script>
 
-<platform bind:this={el} style="left: {left}px; bottom: {bottom}px;">
+<platform bind:this={el} style="left: {left}px; bottom: {bottom}px; height: {height}px; width: {width}px;">
 </platform>
 
 <style>
   platform {
     background-color: gray;
-    width: 100px;
-    height: 20px;
     position: absolute;
   }
 </style>

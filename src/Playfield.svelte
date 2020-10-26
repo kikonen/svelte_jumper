@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import { onDestroy } from 'svelte';
 
-  export let physics;
+  export let engine;
 
   let el;
 
   onMount(function() {
+    console.log("playfield");
+    engine.registerContainer(el);
   });
 
   onDestroy(function() {

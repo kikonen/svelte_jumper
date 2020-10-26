@@ -2,8 +2,8 @@
   import { onMount } from 'svelte';
   import { onDestroy } from 'svelte';
 
-  export let physics;
-  export let playfield;
+  export let engine;
+  export let data;
   export let platforms;
 
   const GRAVITY = 0.9;
@@ -16,6 +16,8 @@
 
   let left = 0;
   let bottom = 0;
+  let height = 0;
+  let width = 0;
 
   let jumpHeight;
   let jumpStart;
@@ -112,6 +114,7 @@
     moveStart = left;
     movement = 0;
     friction = FRICTION;
+    speed = 5;
 
     let maxLeft = getMaxLeft();
     console.log(platforms[1]);
@@ -135,8 +138,12 @@
   }
 
   onMount(function() {
-    left = 20;
-    bottom = 20;
+    width = data.width;
+    height = data.height;
+    left = data.left;
+    bottom = data.bottom;
+    speed = data.speed;
+
     fall();
   });
 
@@ -146,14 +153,12 @@
   });
 </script>
 
-<player bind:this={el} style="left: {left}px; bottom: {bottom}px;">
+<player bind:this={el} style="left: {left}px; bottom: {bottom}px; height: {height}px; width: {width}px;">
 </player>
 
 <style>
   player {
     background-color: red;
-    width: 50px;
-    height: 80px;
     position: absolute;
     z-index: 1;
   }
