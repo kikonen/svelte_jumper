@@ -1,21 +1,25 @@
 <script>
   import { onMount } from 'svelte';
   import { onDestroy } from 'svelte';
+  import { beforeUpdate } from 'svelte';
 
+  export let id;
   export let engine;
-  export let data;
   export let index;
-  export let playfield;
 
   let el;
 
+  let started = false;
+
   let x = 0;
   let y = 0;
-  let width = 100;
-  let height = 20;
+  let width = 0;
+  let height = 0;
+  let velocity = 0;
 
   let timerId;
   let direction = 1;
+
 
   function getMinX() {
     return width / 2;
@@ -34,15 +38,15 @@
   }
 
   function start() {
-    console.log(`start: ${data.id}`);
+    console.log(`start: ${id}`);
     stop();
     timerId = setInterval(function() {
       tick();
-    }, data.velocity);
+    }, velocity);
   };
 
   function stop() {
-    console.log(`stop: ${data.id}`);
+    console.log(`stop: ${id}`);
     timerId = clearInterval(timerId);
   }
 
@@ -58,16 +62,25 @@
     x = newX;
   };
 
+  function itemChanged(item) {
+    x = item.x;
+    y = item.y;
+    width = item.width;
+    height = item.height;
+    velocity = item.velocity;
+
+    if (!started) {
+      started = true;
+      start();
+    }
+  }
+
   onMount(function() {
-    x = data.x;
-    y = data.y;
-    width = data.width;
-    height = data.height;
-    start();
+    engine.subscribe(id, itemChanged);
   });
 
   onDestroy(function() {
-    console.log(`destroy data: ${data.id}`);
+    console.log(`destroy data: ${id}`);
     stop();
   });
 </script>

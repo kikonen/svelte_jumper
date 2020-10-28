@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { onDestroy } from 'svelte';
+  import { beforeUpdate } from 'svelte';
 
   export let engine;
 
@@ -8,7 +9,6 @@
 
   onMount(function() {
     console.log("playfield");
-    engine.registerContainer(el);
   });
 
   onDestroy(function() {

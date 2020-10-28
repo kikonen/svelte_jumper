@@ -1,5 +1,6 @@
 <script>
   import {onMount} from 'svelte';
+  import {afterUpdate} from 'svelte';
   import { createEventDispatcher } from 'svelte';
 
   import PhysicsEngine from './PhysicsEngine.js';
@@ -13,34 +14,19 @@
   const MAX_PLATFORMS = 8;
   const dispatch = createEventDispatcher();
 
-  const controls = {
-    nop: function() {},
-
-    ArrowLeft: function(ev) {
-      player.moveLeft();
-    },
-    ArrowRight: function(ev) {
-      player.moveRight();
-    },
-    ArrowUp: function(ev) {
-      player.jump();
-    },
-  };
-
   let engine;
 
-  let player;
-  let playfield;
+  let container;
 
-  let playerData = {}
-  let platforms = [];
+  let playerId;
+  let platformIds = [];
 
   let started = false;
 
   function createPlayer() {
     let areaW = engine.getWidth();
 
-    playerData = {
+    let item = {
       x: areaW/2 - 50/2,
       y: 80,
       width: 50,
@@ -48,14 +34,15 @@
       mass: 30,
       velocity: 0,
     };
-    engine.register(playerData);
+    engine.register(item, true);
+    playerId = item.id;
   }
 
   function createPlatforms() {
-    platforms = [];
+    platformIds = [];
     let areaW = engine.getWidth();
     for (let i = 0; i < MAX_PLATFORMS; i++) {
-      let platform = {
+      let item = {
         x: (areaW - 50) * Math.random(),
         y: i * 80 + 10,
         width: 100,
@@ -63,21 +50,20 @@
         mass: 100,
         velocity: 40 + 10 * Math.random(),
       };
-      engine.register(platform);
-      platforms.push(platform);
+      engine.register(item);
+      platformIds.push(item.id);
     }
   }
 
   function start() {
-    engine = new PhysicsEngine();
-    engine.registerContainer(playfield);
+    engine = new PhysicsEngine(dispatch);
+    engine.registerContainer(container);
     createPlayer();
     createPlatforms();
     started = true;
   }
 
   function stop() {
-    platforms = [];
     started = false;
   }
 
@@ -87,13 +73,19 @@
     } else {
       start();
     }
+    setTimeout(function() {
+      engine.start();
+    }, 0);
   }
+
+  afterUpdate(function () {
+  });
 
   onMount(function () {
   });
 
   function handleKeydown(ev) {
-    (controls[event.key] || controls[event.code] || controls.nop)(event);
+    engine.handleKeydown(ev);
   }
 </script>
 
@@ -102,15 +94,17 @@
 <main>
   <button on:click={toggleGame}>{started ? 'Stop' : 'Start'}</button>
   <div class="game">
-    {#if started}
-      <Playfield bind:this={playfield} engine={engine} >
-        <Player bind:this={player} data={playerData} platforms={platforms} engine={engine} />
+    <div class="container" bind:this={container}>
+      {#if started}
+        <Playfield engine={engine} >
+          <Player id={playerId} engine={engine} />
 
-        {#each platforms as p, index}
-          <Platform data={p} index={index} engine={engine} />
-        {/each}
-      </Playfield>
-     {/if}
+          {#each platformIds as id, index}
+            <Platform id={id} index={index} engine={engine} />
+          {/each}
+        </Playfield>
+      {/if}
+    </div>
   </div>
 </main>
 
@@ -134,6 +128,11 @@
     height: 600px;
     margin: 0;
     position: relative;
+  }
+
+  .container {
+    width: 100%;
+    height: 100%;
   }
 
   h1 {
