@@ -1,9 +1,12 @@
 const GRAVITY = 0.9;
-const FRICTION = 0.8;
+const FRICTION = 0.9;
 
 const MAX_JUMP = 200;
-const MAX_MOVE = 50;
 
+const START_VELOCITY = 3;
+const ADD_VELOCITY = 1.4;
+const MIN_VELOCITY = 0.1;
+const MAX_VELOCITY = 20;
 
 export default class PhysicsEngine {
   constructor(dispatch) {
@@ -87,8 +90,13 @@ export default class PhysicsEngine {
   }
 
   stop() {
-    this.stopFall(this.player);
-    this.stopJump(this.player);
+    this.stopItem(this.player);
+  }
+
+  stopItem(item) {
+    this.stopFall(item);
+    this.stopJump(item);
+    this.stopMove(item);
   }
 
   tick() {
@@ -191,37 +199,47 @@ export default class PhysicsEngine {
   }
 
   moveLeft(item) {
+    if (item.dir !== -1) {
+      item.velocity = START_VELOCITY;
+    }
     item.dir = -1;
     this.startMove(item);
   }
 
   moveRight(item) {
+    if (item.dir !== 1) {
+      item.velocity = START_VELOCITY;
+    }
     item.dir = 1;
     this.startMove(item);
   }
 
   startMove(item) {
     if (item.moveTimerId) {
-      return;
+      item.velocity *= ADD_VELOCITY;
+    } else {
+      item.velocity = START_VELOCITY;
+      item.friction = FRICTION;
+    }
+    if (item.velocity > MAX_VELOCITY) {
+      item.velocity = MAX_VELOCITY;
     }
 
-    item.velocity = 5;
-    item.moveStart = item.x;
-    item.movement = 0;
-    item.friction = FRICTION;
-
-    item.moveTimerId = setInterval(function() { this.handleMove(item); }.bind(this), 20);
+    if (!item.moveTimerId) {
+      item.moveTimerId = setInterval(function() { this.handleMove(item); }.bind(this), 20);
+    }
   }
 
   handleMove(item) {
     const minX = this.getMinX(item);
     const maxX = this.getMaxX(item);
 
-    item.movement += item.velocity * item.friction;
+    item.velocity = item.velocity * item.friction;
+    let movement = item.velocity * 1;
 
-    let newX = item.moveStart + item.movement * item.dir;
+    let newX = item.x + movement * item.dir;
 
-    if (newX <= minX || newX > maxX || item.movement > MAX_MOVE) {
+    if (newX <= minX || newX > maxX || item.velocity < MIN_VELOCITY) {
       this.stopMove(item);
     }
     if (newX <= minX) {
