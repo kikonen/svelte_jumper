@@ -9,17 +9,28 @@
 
   let el;
 
-  let left = 0;
-  let bottom = 0;
+  let x = 0;
+  let y = 0;
   let width = 100;
   let height = 20;
 
   let timerId;
   let direction = 1;
-  let speed = 0;
 
-  function getMaxLeft() {
-    return engine.getWidth() - data.width;
+  function getMinX() {
+    return width / 2;
+  }
+
+  function getMaxX() {
+    return engine.getWidth() - width / 2;
+  }
+
+  function getMinY() {
+    return height / 2;
+  }
+
+  function getMaxY() {
+    return engine.getHeight() - height / 2;
   }
 
   function start() {
@@ -27,7 +38,7 @@
     stop();
     timerId = setInterval(function() {
       tick();
-    }, speed);
+    }, data.velocity);
   };
 
   function stop() {
@@ -36,28 +47,22 @@
   }
 
   function tick() {
-    let newLeft = left + 5 * direction;
-    let maxLeft = getMaxLeft();
-    if (newLeft <= 0 || newLeft > maxLeft) {
-      newLeft = newLeft <= 0 ? 0 : maxLeft;
+    let newX = x + 5 * direction;
+    let minX = getMinX();
+    let maxX = getMaxX();
+
+    if (newX <= minX || newX > maxX) {
+      newX = newX <= minX ? minX : maxX;
       direction = direction * -1;
     }
-    left = newLeft;
+    x = newX;
   };
 
-  function moveLeft() {
-  }
-
-  function moveRight() {
-    left += 5;
-  }
-
   onMount(function() {
+    x = data.x;
+    y = data.y;
     width = data.width;
     height = data.height;
-    left = data.left;
-    bottom = data.bottom;
-    speed = data.speed;
     start();
   });
 
@@ -67,7 +72,7 @@
   });
 </script>
 
-<platform bind:this={el} style="left: {left}px; bottom: {bottom}px; height: {height}px; width: {width}px;">
+<platform bind:this={el} style="left: {x - width/2}px; top: {y - height/2}px; height: {height}px; width: {width}px;">
 </platform>
 
 <style>

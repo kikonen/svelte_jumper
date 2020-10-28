@@ -4,7 +4,6 @@
 
   export let engine;
   export let data;
-  export let platforms;
 
   const GRAVITY = 0.9;
   const FRICTION = 0.8;
@@ -14,8 +13,8 @@
 
   let el;
 
-  let left = 0;
-  let bottom = 0;
+  let x = 0;
+  let y = 0;
   let height = 0;
   let width = 0;
 
@@ -30,7 +29,6 @@
   let moveStart = 0;
   let movement;
   let dir = 0;
-  let speed = 5;
   let friction;
 
   export function start() {
@@ -39,8 +37,20 @@
   export function stop() {
   }
 
-  function getMaxLeft() {
-    return el.parentNode.clientWidth - el.clientWidth;
+  function getMinX() {
+    return width / 2;
+  }
+
+  function getMaxX() {
+    return engine.getWidth() - width / 2;
+  }
+
+  function getMinY() {
+    return height / 2;
+  }
+
+  function getMaxY() {
+    return engine.getHeight() - height / 2;
   }
 
   function stopJump() {
@@ -64,11 +74,11 @@
 
     gravity = GRAVITY;
     jumpHeight = 0;
-    jumpStart = bottom;
+    jumpStart = y;
 
     jumpTimerId = setInterval(function() {
       jumpHeight += 10 * gravity;
-      bottom = jumpStart + jumpHeight;
+      y = jumpStart - jumpHeight;
 
       if (jumpHeight >= MAX_JUMP) {
         fall();
@@ -80,17 +90,20 @@
     stopJump();
     stopFall();
 
+    let minY = getMinY();
+    let maxY = getMaxY();
+
     gravity = GRAVITY;
     jumpHeight = 0;
-    jumpStart = bottom;
+    jumpStart = y;
 
     fallTimerId = setInterval(function() {
       jumpHeight -= 10 / gravity;
 
-      bottom = jumpStart + jumpHeight;
+      y = jumpStart - jumpHeight;
 
-      if (bottom <= 0) {
-        bottom = 0;
+      if (y >= maxY) {
+        y = maxY;
         stopFall();
       }
     }, 50);
@@ -111,38 +124,37 @@
       return;
     }
 
-    moveStart = left;
+    data.velocity = 5;
+    moveStart = x;
     movement = 0;
     friction = FRICTION;
-    speed = 5;
 
-    let maxLeft = getMaxLeft();
-    console.log(platforms[1]);
+    const minX = getMinX();
+    const maxX = getMaxX();
 
     moveTimerId = setInterval(function() {
-      movement += speed * friction;
+      movement += data.velocity * friction;
 
-      let l = moveStart + movement * dir;
+      let newX = moveStart + movement * dir;
 
-      if (l <= 0 || l > maxLeft || movement > MAX_MOVE) {
+      if (newX <= minX || newX > maxX || movement > MAX_MOVE) {
         stopMove();
       }
-      if (l <= 0) {
-        l = 0;
-      } else if (l > maxLeft) {
-        l = maxLeft;
+      if (newX <= minX) {
+        newX = minX;
+      } else if (newX > maxX) {
+        newX = maxX;
       }
 
-      left = l;
+      x = newX;
     }, 20);
   }
 
   onMount(function() {
+    x = data.x;
+    y = data.y;
     width = data.width;
     height = data.height;
-    left = data.left;
-    bottom = data.bottom;
-    speed = data.speed;
 
     fall();
   });
@@ -153,7 +165,7 @@
   });
 </script>
 
-<player bind:this={el} style="left: {left}px; bottom: {bottom}px; height: {height}px; width: {width}px;">
+<player bind:this={el} style="left: {x - width/2}px; top: {y - height/2}px; height: {height}px; width: {width}px;">
 </player>
 
 <style>

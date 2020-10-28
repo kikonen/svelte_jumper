@@ -41,11 +41,12 @@
     let areaW = engine.getWidth();
 
     playerData = {
-      bottom: 80,
-      left: areaW/2 - 50/2,
+      x: areaW/2 - 50/2,
+      y: 80,
       width: 50,
       height: 80,
-      speed: 0,
+      mass: 30,
+      velocity: 0,
     };
     engine.register(playerData);
   }
@@ -55,11 +56,12 @@
     let areaW = engine.getWidth();
     for (let i = 0; i < MAX_PLATFORMS; i++) {
       let platform = {
-        bottom: i * 80,
-        left: (areaW - 100) * Math.random(),
+        x: (areaW - 50) * Math.random(),
+        y: i * 80 + 10,
         width: 100,
         height: 20,
-        speed: 40 + 10 * Math.random(),
+        mass: 100,
+        velocity: 40 + 10 * Math.random(),
       };
       engine.register(platform);
       platforms.push(platform);
