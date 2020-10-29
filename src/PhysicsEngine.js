@@ -219,13 +219,14 @@ export default class PhysicsEngine {
     let movement = item.velocityY * 1;
     let newY = item.y + movement * item.dirY;
 
-    if (newY <= minY || newY > maxY || item.velocityY < MIN_JUMP_VELOCITY) {
-      this.fall(item);
-    }
     if (newY <= minY) {
       newY = minY;
     } else if (newY > maxY) {
       newY = maxY;
+    }
+
+    if (newY <= minY || item.velocityY < MIN_JUMP_VELOCITY) {
+      this.fall(item);
     }
 
     item.y = newY;
@@ -245,13 +246,14 @@ export default class PhysicsEngine {
     let movement = item.velocityY * 1;
     let newY = item.y + movement * item.dirY;
 
-    if (newY <= minY || newY > maxY) {
-      this.stopFall(item);
-    }
     if (newY <= minY) {
       newY = minY;
     } else if (newY > maxY) {
       newY = maxY;
+    }
+
+    if (newY >= maxY) {
+      this.stopFall(item);
     }
 
     item.y = newY;
@@ -268,13 +270,16 @@ export default class PhysicsEngine {
     let movement = item.velocityX * 1;
     let newX = item.x + movement * item.dirX;
 
-    if (newX <= minX || newX > maxX || item.velocityX < MIN_VELOCITY_X) {
-      this.stopMove(item);
-    }
     if (newX <= minX) {
       newX = minX;
     } else if (newX > maxX) {
       newX = maxX;
+    }
+
+    if (newX <= minX || newX >= maxX) {
+      item.dir = item * -1;
+    } else if (item.velocityX < MIN_VELOCITY_X) {
+      this.stopMove(item);
     }
 
     item.x = newX;
