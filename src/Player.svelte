@@ -12,14 +12,20 @@
   let y = 0;
   let height = 0;
   let width = 0;
-  let velocity = 0;
+
+  function start() {
+    console.log(`start player: ${id}`);
+  };
+
+  function stop() {
+    console.log(`stop player: ${id}`);
+  }
 
   function itemChanged(item) {
     x = item.x;
     y = item.y;
     width = item.width;
     height = item.height;
-    velocity = item.velocity;
   }
 
   onMount(function() {
@@ -27,7 +33,7 @@
   });
 
   onDestroy(function() {
-    console.log("destroy player");
+    console.log(`destroy player: ${id}`);
     stop();
   });
 </script>

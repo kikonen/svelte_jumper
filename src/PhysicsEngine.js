@@ -99,7 +99,8 @@ export default class PhysicsEngine {
   }
 
   stop() {
-    this.stopItem(this.player);
+    this.timerId = clearInterval(this.timerId);
+    this.items.forEach(this.stopItem);
   }
 
   stopItem(item) {

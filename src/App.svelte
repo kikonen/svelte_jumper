@@ -48,7 +48,8 @@
         height: 20,
         mass: 100,
         friction: 1,
-        velocityX: 40 + 10 * Math.random(),
+        dirX: Math.random() > 0.5 ? 1 : -1,
+        velocityX: 5 + 5 * Math.random(),
       };
       engine.register(item);
       platformIds.push(item.id);
@@ -101,8 +102,8 @@
         <Playfield engine={engine} >
           <Player id={playerId} engine={engine} />
 
-          {#each platformIds as id, index}
-            <Platform id={id} index={index} engine={engine} />
+          {#each platformIds as id (id)}
+            <Platform id={id} engine={engine} />
           {/each}
         </Playfield>
       {/if}
