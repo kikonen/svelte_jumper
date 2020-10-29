@@ -1,10 +1,12 @@
+const WORLD_SPEED = 40;
+
 const DEFAULT_GRAVITY = 0.9;
 const DEFAULT_FRICTION = 0.9;
 
-const START_VELOCITY_X = 3;
-const ADD_VELOCITY_X = 1.4;
-const MIN_VELOCITY_X = 0.1;
-const MAX_VELOCITY_X = 20;
+const START_MOVE_VELOCITY = 3;
+const ADD_MOVE_VELOCITY = 1.4;
+const MIN_MOVE_VELOCITY = 0.1;
+const MAX_MOVE_VELOCITY = 20;
 
 const START_JUMP_VELOCITY = 20;
 const MIN_JUMP_VELOCITY = 0.5;
@@ -92,6 +94,8 @@ export default class PhysicsEngine {
     }
     this.started = true;
     this.items.forEach(this.startItem);
+
+    this.timerId = setInterval(this.tick, WORLD_SPEED);
   }
 
   stop() {
@@ -104,10 +108,6 @@ export default class PhysicsEngine {
     this.stopMove(item);
   }
 
-  tick() {
-    this.items.forEach(this.tickItem);
-  }
-
   startItem(item) {
     if (item.itemChanged) {
       item.itemChanged(item);
@@ -118,10 +118,20 @@ export default class PhysicsEngine {
     }
   }
 
+  tick() {
+    this.items.forEach(this.tickItem);
+  }
+
   tickItem(item) {
-    if (item.velocityX <= 0)  {
-      item.velocityX = 0;
-      return;
+    if (item.velocityX && item.velocityX > 0) {
+      this.handleMove(item);
+    }
+    if (item.velocityY && item.velocityY > 0) {
+      if (item.dirY > 0) {
+        this.handleFall(item);
+      } else {
+        this.handleJump(item);
+      }
     }
   }
 
@@ -142,19 +152,19 @@ export default class PhysicsEngine {
   }
 
   stopJump(item) {
-    item.jumpTimerId = clearInterval(item.jumpTimerId);
+    item.velocityY = 0;
   }
 
   stopFall(item) {
-    item.fallTimerId = clearInterval(item.fallTimerId);
+    item.velocityY = 0;
   }
 
   stopMove(item) {
-    item.moveTimerId = clearInterval(item.moveTimerId);
+    item.velocityX = 0;
   }
 
   jump(item) {
-    if (item.jumpTimerId || item.fallTimerId) {
+    if (item.velocityY && item.velocityY > 0) {
       return;
     }
 
@@ -163,8 +173,6 @@ export default class PhysicsEngine {
     item.gravity = item.gravity || DEFAULT_GRAVITY;
     item.velocityY = START_JUMP_VELOCITY;
     item.dirY = -1;
-
-    item.jumpTimerId = setInterval(function() { this.handleJump(item); }.bind(this), 50);
   }
 
   fall(item) {
@@ -174,13 +182,11 @@ export default class PhysicsEngine {
     item.gravity = item.gravity || DEFAULT_GRAVITY;
     item.velocityY = START_FALL_VELOCITY;
     item.dirY = 1;
-
-    item.fallTimerId = setInterval(function() { this.handleFall(item); }.bind(this), 50);
   }
 
   moveLeft(item) {
     if (item.dirX !== -1) {
-      item.velocityX = START_VELOCITY_X;
+      item.velocityX = 0;
     }
     item.dirX = -1;
     this.startMove(item);
@@ -188,25 +194,21 @@ export default class PhysicsEngine {
 
   moveRight(item) {
     if (item.dirX !== 1) {
-      item.velocityX = START_VELOCITY_X;
+      item.velocityX = 0;
     }
     item.dirX = 1;
     this.startMove(item);
   }
 
   startMove(item) {
-    if (item.moveTimerId) {
-      item.velocityX *= ADD_VELOCITY_X;
+    if (item.velocityX && item.velocityX > 0) {
+      item.velocityX *= ADD_MOVE_VELOCITY;
     } else {
-      item.velocityX = item.velocityX || START_VELOCITY_X;
+      item.velocityX = item.velocityX || START_MOVE_VELOCITY;
       item.friction = item.friction || DEFAULT_FRICTION;
     }
-    if (item.velocity > MAX_VELOCITY_X) {
-      item.velocity = MAX_VELOCITY_X;
-    }
-
-    if (!item.moveTimerId) {
-      item.moveTimerId = setInterval(function() { this.handleMove(item); }.bind(this), 20);
+    if (item.velocityX > MAX_MOVE_VELOCITY) {
+      item.velocityX = MAX_MOVE_VELOCITY;
     }
   }
 
@@ -276,10 +278,11 @@ export default class PhysicsEngine {
       newX = maxX;
     }
 
-    if (newX <= minX || newX >= maxX) {
-      item.dir = item * -1;
-    } else if (item.velocityX < MIN_VELOCITY_X) {
+    if (item.velocityX < MIN_MOVE_VELOCITY) {
       this.stopMove(item);
+    } else if (newX <= minX || newX >= maxX) {
+      item.dirX = item.dirX * -1;
+      newX += item.dirX;
     }
 
     item.x = newX;
