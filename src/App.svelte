@@ -32,7 +32,6 @@
       width: 50,
       height: 80,
       mass: 30,
-      velocity: 0,
     };
     engine.register(item, true);
     playerId = item.id;
@@ -48,7 +47,8 @@
         width: 100,
         height: 20,
         mass: 100,
-        velocity: 40 + 10 * Math.random(),
+        friction: 1,
+        velocityX: 40 + 10 * Math.random(),
       };
       engine.register(item);
       platformIds.push(item.id);
@@ -85,7 +85,9 @@
   });
 
   function handleKeydown(ev) {
-    engine.handleKeydown(ev);
+    if (engine) {
+      engine.handleKeydown(ev);
+    }
   }
 </script>
 

@@ -1,12 +1,17 @@
-const GRAVITY = 0.9;
-const FRICTION = 0.9;
+const DEFAULT_GRAVITY = 0.9;
+const DEFAULT_FRICTION = 0.9;
 
-const MAX_JUMP = 200;
+const START_VELOCITY_X = 3;
+const ADD_VELOCITY_X = 1.4;
+const MIN_VELOCITY_X = 0.1;
+const MAX_VELOCITY_X = 20;
 
-const START_VELOCITY = 3;
-const ADD_VELOCITY = 1.4;
-const MIN_VELOCITY = 0.1;
-const MAX_VELOCITY = 20;
+const START_JUMP_VELOCITY = 20;
+const MIN_JUMP_VELOCITY = 0.5;
+
+const START_FALL_VELOCITY = 2;
+const MAX_FALL_VELOCITY = 100;
+
 
 export default class PhysicsEngine {
   constructor(dispatch) {
@@ -114,8 +119,8 @@ export default class PhysicsEngine {
   }
 
   tickItem(item) {
-    if (item.velocity <= 0)  {
-      item.velocity = 0;
+    if (item.velocityX <= 0)  {
+      item.velocityX = 0;
       return;
     }
   }
@@ -155,74 +160,49 @@ export default class PhysicsEngine {
 
     this.stopFall(item);
 
-    item.gravity = GRAVITY;
-    item.jumpHeight = 0;
-    item.jumpStart = item.y;
+    item.gravity = item.gravity || DEFAULT_GRAVITY;
+    item.velocityY = START_JUMP_VELOCITY;
+    item.dirY = -1;
 
     item.jumpTimerId = setInterval(function() { this.handleJump(item); }.bind(this), 50);
-  }
-
-  handleJump(item) {
-    item.jumpHeight += 10 * item.gravity;
-    item.y = item.jumpStart - item.jumpHeight;
-
-    if (item.jumpHeight >= MAX_JUMP) {
-      this.fall(item);
-    }
-    item.itemChanged(item);
   }
 
   fall(item) {
     this.stopJump(item);
     this.stopFall(item);
 
-    item.gravity = GRAVITY;
-    item.jumpHeight = 0;
-    item.jumpStart = item.y;
+    item.gravity = item.gravity || DEFAULT_GRAVITY;
+    item.velocityY = START_FALL_VELOCITY;
+    item.dirY = 1;
 
     item.fallTimerId = setInterval(function() { this.handleFall(item); }.bind(this), 50);
   }
 
-  handleFall(item) {
-    let minY = this.getMinY(item);
-    let maxY = this.getMaxY(item);
-
-    item.jumpHeight -= 10 / item.gravity;
-    item.y = item.jumpStart - item.jumpHeight;
-
-    if (item.y >= maxY) {
-      item.y = maxY;
-      this.stopFall(item);
-    }
-
-    item.itemChanged(item);
-  }
-
   moveLeft(item) {
-    if (item.dir !== -1) {
-      item.velocity = START_VELOCITY;
+    if (item.dirX !== -1) {
+      item.velocityX = START_VELOCITY_X;
     }
-    item.dir = -1;
+    item.dirX = -1;
     this.startMove(item);
   }
 
   moveRight(item) {
-    if (item.dir !== 1) {
-      item.velocity = START_VELOCITY;
+    if (item.dirX !== 1) {
+      item.velocityX = START_VELOCITY_X;
     }
-    item.dir = 1;
+    item.dirX = 1;
     this.startMove(item);
   }
 
   startMove(item) {
     if (item.moveTimerId) {
-      item.velocity *= ADD_VELOCITY;
+      item.velocityX *= ADD_VELOCITY_X;
     } else {
-      item.velocity = START_VELOCITY;
-      item.friction = FRICTION;
+      item.velocityX = item.velocityX || START_VELOCITY_X;
+      item.friction = item.friction || DEFAULT_FRICTION;
     }
-    if (item.velocity > MAX_VELOCITY) {
-      item.velocity = MAX_VELOCITY;
+    if (item.velocity > MAX_VELOCITY_X) {
+      item.velocity = MAX_VELOCITY_X;
     }
 
     if (!item.moveTimerId) {
@@ -230,16 +210,65 @@ export default class PhysicsEngine {
     }
   }
 
+  handleJump(item) {
+    const minY = this.getMinY(item);
+    const maxY = this.getMaxY(item);
+
+    item.velocityY = item.velocityY * item.gravity;
+
+    let movement = item.velocityY * 1;
+    let newY = item.y + movement * item.dirY;
+
+    if (newY <= minY || newY > maxY || item.velocityY < MIN_JUMP_VELOCITY) {
+      this.fall(item);
+    }
+    if (newY <= minY) {
+      newY = minY;
+    } else if (newY > maxY) {
+      newY = maxY;
+    }
+
+    item.y = newY;
+
+    item.itemChanged(item);
+  }
+
+  handleFall(item) {
+    const minY = this.getMinY(item);
+    const maxY = this.getMaxY(item);
+
+    item.velocityY = item.velocityY / item.gravity;
+    if (item.velocityY > MAX_FALL_VELOCITY) {
+      item.velocityY = MAX_FALL_VELOCITY;
+    }
+
+    let movement = item.velocityY * 1;
+    let newY = item.y + movement * item.dirY;
+
+    if (newY <= minY || newY > maxY) {
+      this.stopFall(item);
+    }
+    if (newY <= minY) {
+      newY = minY;
+    } else if (newY > maxY) {
+      newY = maxY;
+    }
+
+    item.y = newY;
+
+    item.itemChanged(item);
+  }
+
   handleMove(item) {
     const minX = this.getMinX(item);
     const maxX = this.getMaxX(item);
 
-    item.velocity = item.velocity * item.friction;
-    let movement = item.velocity * 1;
+    item.velocityX = item.velocityX * item.friction;
 
-    let newX = item.x + movement * item.dir;
+    let movement = item.velocityX * 1;
+    let newX = item.x + movement * item.dirX;
 
-    if (newX <= minX || newX > maxX || item.velocity < MIN_VELOCITY) {
+    if (newX <= minX || newX > maxX || item.velocityX < MIN_VELOCITY_X) {
       this.stopMove(item);
     }
     if (newX <= minX) {
