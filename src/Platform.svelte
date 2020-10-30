@@ -15,11 +15,11 @@
 
 
   function start() {
-    console.log(`start platform: ${id}`);
+//    console.log(`start platform: ${id}`);
   };
 
   function stop() {
-    console.log(`stop platform: ${id}`);
+//    console.log(`stop platform: ${id}`);
   }
 
   function itemChanged(item) {
@@ -34,7 +34,7 @@
   });
 
   onDestroy(function() {
-    console.log(`destroy platform: ${id}`);
+//    console.log(`destroy platform: ${id}`);
     stop();
   });
 </script>

@@ -27,11 +27,14 @@
     let areaW = engine.getWidth();
 
     let item = {
+      type: 'player',
       x: areaW/2 - 50/2,
       y: 80,
       width: 50,
       height: 80,
       mass: 30,
+      gravity: 0.9,
+      friction: 0.9,
     };
     engine.register(item, true);
     playerId = item.id;
@@ -42,11 +45,13 @@
     let areaW = engine.getWidth();
     for (let i = 0; i < MAX_PLATFORMS; i++) {
       let item = {
+        type: 'platform',
         x: (areaW - 50) * Math.random(),
         y: i * 80 + 10,
         width: 100,
         height: 20,
         mass: 100,
+        gravity: 1.3,
         friction: 1,
         dirX: Math.random() > 0.5 ? 1 : -1,
         velocityX: 5 + 5 * Math.random(),
@@ -65,6 +70,7 @@
   }
 
   function stop() {
+    engine.stop();
     started = false;
   }
 

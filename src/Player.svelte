@@ -14,11 +14,11 @@
   let width = 0;
 
   function start() {
-    console.log(`start player: ${id}`);
+//    console.log(`start player: ${id}`);
   };
 
   function stop() {
-    console.log(`stop player: ${id}`);
+//    console.log(`stop player: ${id}`);
   }
 
   function itemChanged(item) {
@@ -33,7 +33,7 @@
   });
 
   onDestroy(function() {
-    console.log(`destroy player: ${id}`);
+//    console.log(`destroy player: ${id}`);
     stop();
   });
 </script>

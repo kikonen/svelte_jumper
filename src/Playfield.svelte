@@ -8,7 +8,7 @@
   let el;
 
   onMount(function() {
-    console.log("playfield");
+//    console.log("playfield");
   });
 
   onDestroy(function() {
