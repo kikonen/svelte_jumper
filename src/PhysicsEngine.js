@@ -1,4 +1,4 @@
-const WORLD_SPEED = 40;
+const WORLD_SPEED = 20;
 
 const DEFAULT_GRAVITY = 0.9;
 const DEFAULT_FRICTION = 0.9;
@@ -120,18 +120,28 @@ export default class PhysicsEngine {
   }
 
   tick() {
-    this.items.forEach(this.tickItem);
+    const areaW = this.getWidth();
+    const areaH = this.getHeight();
+
+    this.items.forEach(function(item) { this.tickItem(item, areaW, areaH); }.bind(this));
   }
 
-  tickItem(item) {
+  tickItem(item, areaW, areaH) {
     if (item.velocityX && item.velocityX > 0) {
-      this.handleMove(item);
+      const minX =  item.width / 2;
+      const maxX = areaW - item.width / 2;
+
+      this.handleMove(item, minX, maxX);
     }
+
     if (item.velocityY && item.velocityY > 0) {
+      const minY = item.height / 2;
+      const maxY = areaH - item.height / 2;
+
       if (item.dirY > 0) {
-        this.handleFall(item);
+        this.handleFall(item, minY, maxY);
       } else {
-        this.handleJump(item);
+        this.handleJump(item, minY, maxY);
       }
     }
   }
@@ -213,10 +223,7 @@ export default class PhysicsEngine {
     }
   }
 
-  handleJump(item) {
-    const minY = this.getMinY(item);
-    const maxY = this.getMaxY(item);
-
+  handleJump(item, minY, maxY) {
     item.velocityY = item.velocityY * item.gravity;
 
     let movement = item.velocityY * 1;
@@ -237,10 +244,7 @@ export default class PhysicsEngine {
     item.itemChanged(item);
   }
 
-  handleFall(item) {
-    const minY = this.getMinY(item);
-    const maxY = this.getMaxY(item);
-
+  handleFall(item, minY, maxY) {
     item.velocityY = item.velocityY / item.gravity;
     if (item.velocityY > MAX_FALL_VELOCITY) {
       item.velocityY = MAX_FALL_VELOCITY;
@@ -264,10 +268,7 @@ export default class PhysicsEngine {
     item.itemChanged(item);
   }
 
-  handleMove(item) {
-    const minX = this.getMinX(item);
-    const maxX = this.getMaxX(item);
-
+  handleMove(item, minX, maxX) {
     item.velocityX = item.velocityX * item.friction;
 
     let movement = item.velocityX * 1;
