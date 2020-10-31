@@ -3,6 +3,11 @@
   import {afterUpdate} from 'svelte';
   import { createEventDispatcher } from 'svelte';
 
+  import Vector from './Vector.js';
+  import BoxShape from './BoxShape.js';
+  import Material from './Material.js';
+
+  import Item from './Item.js';
   import PhysicsEngine from './PhysicsEngine.js';
 
   import Playfield from './Playfield.svelte';
@@ -25,18 +30,25 @@
 
   function createPlayer() {
     let areaW = engine.getWidth();
+    let areaH = engine.getHeight();
 
-    let item = {
+    let w = 50;
+    let h = 80;
+    let middleX = (areaW / 2 - w/2);
+    let middleY = areaH / 2 + h / 2;
+
+    let min = new Vector(middleX - w/2, middleY - h/2);
+    let max = new Vector(middleX + w/2, middleY + h/2);
+    let shape = new BoxShape(min, max);
+
+    let item = new Item({
       type: 'player',
-      x: areaW/2 - 50/2,
-      y: 80,
-      width: 50,
-      height: 80,
-      mass: 30,
+      shape: shape,
+      material: new Material(5, 2),
       gravity: 0.9,
       friction: 0.9,
-    };
-    engine.register(item, true);
+    });
+    engine.register(item);
     playerId = item.id;
   }
 
@@ -44,18 +56,28 @@
     platformIds = [];
     let areaW = engine.getWidth();
     for (let i = 0; i < MAX_PLATFORMS; i++) {
-      let item = {
+      let w = 100;
+      let h = 20;
+      let middleX = w/2 + (areaW - w) * Math.random();
+      let middleY = h/2 + i * 80;
+
+      let min = new Vector(middleX - w/2, middleY - h/2)
+      let max = new Vector(middleX + w/2, middleY + h/2)
+      let shape = new BoxShape(min, max);
+
+      let velocity = new Vector(5 + 5 * Math.random(), 0);
+      if (Math.random() > 0.5) {
+        velocity = velocity.reverse();
+      }
+
+      let item = new Item({
         type: 'platform',
-        x: (areaW - 50) * Math.random(),
-        y: i * 80 + 10,
-        width: 100,
-        height: 20,
-        mass: 100,
+        shape: shape,
+        material: new Material(10, 2),
         gravity: 1.3,
         friction: 1,
-        dirX: Math.random() > 0.5 ? 1 : -1,
-        velocityX: 5 + 5 * Math.random(),
-      };
+        velocity: velocity
+      });
       engine.register(item);
       platformIds.push(item.id);
     }

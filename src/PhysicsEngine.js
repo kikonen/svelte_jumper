@@ -1,17 +1,22 @@
+import {bindMethods} from './bindMethods.js';
+
+import Vector from './Vector.js';
+import BoxShape from './BoxShape.js';
+import Item from './Item.js';
+
 const WORLD_SPEED = 40;
 
-const DEFAULT_GRAVITY = 0.9;
-const DEFAULT_FRICTION = 0.9;
+const START_LEFT_VELOCITY = new Vector(-3, 0);
+const START_RIGHT_VELOCITY = new Vector(3, 0);
 
-const START_MOVE_VELOCITY = 3;
 const ADD_MOVE_VELOCITY = 1.4;
 const MIN_MOVE_VELOCITY = 0.1;
 const MAX_MOVE_VELOCITY = 20;
 
-const START_JUMP_VELOCITY = 20;
-const MIN_JUMP_VELOCITY = 0.5;
+const START_JUMP_VELOCITY = new Vector(0, -20);
+const MIN_JUMP_VELOCITY = -0.5;
 
-const START_FALL_VELOCITY = 2;
+const START_FALL_VELOCITY = new Vector(0, 2);
 const MIN_FALL_VELOCITY = 0.01;
 const MAX_FALL_VELOCITY = 100;
 
@@ -20,22 +25,13 @@ const NOP = function() {};
 
 export default class PhysicsEngine {
   constructor(dispatch) {
-    const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
-    methods
-      .filter(method => (method !== 'constructor'))
-      .forEach((method) => { this[method] = this[method].bind(this); });
+    bindMethods(this);
 
     this.dispatch = dispatch;
 
-    this.idBase = 0;
     this.items = new Map();
 
-    this.area = {
-      x0: 0,
-      y0: 0,
-      x1: 0,
-      y1: 0,
-    };
+    this.area = new BoxShape();
 
     this.controls = {
       nop: NOP,
@@ -60,37 +56,12 @@ export default class PhysicsEngine {
     this.fall(this.player);
   }
 
-  nextId() {
-    return ++this.idBase;
-  }
-
-  register(item, isPlayer) {
-    item.id = this.nextId();
-
-    let halfW = item.width / 2;
-    let halfH = item.height / 2;
-
-    item.box = {
-      halfW: halfW,
-      halfH: halfH,
-      x0: item.x - halfW,
-      y0: item.y - halfH,
-      x1: item.x + halfW,
-      y1: item.y + halfH,
-    };
-
+  register(item) {
+    item.engine = this;
     this.items.set(item.id, item);
-    if (isPlayer) {
-      this.setPlayer(item.id);
+    if (item.isPlayer) {
+      this.player = item;
     }
-  }
-
-  setPlayer(id) {
-    let item = this.items.get(id);
-
-    item.isPlayer = true;
-    this.playerId = item.id;
-    this.player = item;
   }
 
   subscribe(id, itemChanged) {
@@ -125,6 +96,8 @@ export default class PhysicsEngine {
     this.started = true;
     this.items.forEach(this.startItem);
 
+    this.fall(this.player);
+
     this.timerId = setInterval(this.tick, WORLD_SPEED);
   }
 
@@ -133,22 +106,19 @@ export default class PhysicsEngine {
     this.items.forEach(this.stopItem);
   }
 
-  stopItem(item) {
-    item.velocityX = 0;
-    item.velocityY = 0;
-  }
-
   startItem(item) {
+    item.start();
     if (item.itemChanged) {
       item.itemChanged(item);
     }
+  }
 
-    this.testFall(item);
+  stopItem(item) {
+    item.stop();
   }
 
   tick() {
-    this.area.x1 = this.getWidth();
-    this.area.y1 = this.getHeight();
+    this.area = new BoxShape(null, new Vector(this.getWidth(), this.getHeight()));
 
     this.hitDetection();
 
@@ -164,7 +134,7 @@ export default class PhysicsEngine {
   itemHitDetection(item) {
     let hits = [];
     this.items.forEach(function(b) {
-      if (this.isHit(item, b)) {
+      if (item.intersect(b)) {
         hits.push(b);
       }
     }.bind(this));
@@ -174,188 +144,85 @@ export default class PhysicsEngine {
   }
 
   tickItem(item) {
-    if (item.velocityX && item.velocityX > 0) {
+    if (!item.velocity.isEmpty()) {
       this.handleMove(item);
     }
-
-    if (item.velocityY && item.velocityY > 0) {
-      if (item.dirY > 0) {
-        this.handleFall(item);
-      } else {
-        this.handleJump(item);
-      }
-    }
-  }
-
-  testFall(item) {
-    this.fall(item);
-    this.items.forEach(function(b) {
-    });
   }
 
   jump(item) {
-    if (item.velocityY > 0) {
+    if (item.velocity.y !== 0) {
       return;
     }
 
-    item.gravity = item.gravity != null ? item.gravity : DEFAULT_GRAVITY;
-    item.velocityY = START_JUMP_VELOCITY;
-    item.dirY = -1;
+    item.velocity = item.velocity.plus(START_JUMP_VELOCITY);
   }
 
   fall(item) {
-    item.gravity = item.gravity != null ? item.gravity : DEFAULT_GRAVITY;
-    item.velocityY = START_FALL_VELOCITY;
-    item.dirY = 1;
+    item.velocity = item.velocity.plus(START_FALL_VELOCITY);
   }
 
   moveLeft(item) {
-    if (item.dirX !== -1) {
-      item.velocityX = 0;
+    if (item.velocity.y > 0) {
+      return;
     }
-    item.dirX = -1;
-    this.startMove(item);
+
+    item.velocity = item.velocity.plus(START_LEFT_VELOCITY);
   }
 
   moveRight(item) {
-    if (item.dirX !== 1) {
-      item.velocityX = 0;
-    }
-    item.dirX = 1;
-    this.startMove(item);
-  }
-
-  startMove(item) {
-    if (item.velocityX && item.velocityX > 0) {
-      item.velocityX *= ADD_MOVE_VELOCITY;
-    } else {
-      item.velocityX = item.velocityX || START_MOVE_VELOCITY;
-      item.friction = item.friction != null ? item.friction : DEFAULT_FRICTION;
-    }
-    if (item.velocityX > MAX_MOVE_VELOCITY) {
-      item.velocityX = MAX_MOVE_VELOCITY;
-    }
-  }
-
-  handleJump(item) {
-    if (item.velocityY === 0) {
+    if (item.velocity.y > 0) {
       return;
     }
 
-    item.velocityY = item.velocityY * item.gravity;
-
-    let movement = item.velocityY * 1;
-    let diffY = movement * item.dirY;
-
-    this.adjustLocation(item, 0, diffY);
-
-    if (item.box.y1 <= this.area.y0 || item.velocityY < MIN_JUMP_VELOCITY) {
-      this.fall(item);
-    }
-
-    item.itemChanged(item);
-  }
-
-  handleFall(item) {
-    if (item.velocityY === 0) {
-      return;
-    }
-
-    item.velocityY = item.velocityY / item.gravity;
-
-    if (item.velocityY > MAX_FALL_VELOCITY) {
-      item.velocityY = MAX_FALL_VELOCITY;
-    }
-
-    let movement = item.velocityY * 1;
-    let diffY = movement * item.dirY;
-
-    this.adjustLocation(item, 0, diffY);
-
-    if (item.box.y1 >= this.area.y1 || item.velocityY < MIN_FALL_VELOCITY) {
-      item.velocityY = 0;
-    }
-
-    item.itemChanged(item);
+    item.velocity = item.velocity.plus(START_RIGHT_VELOCITY);
   }
 
   handleMove(item) {
-    item.velocityX = item.velocityX * item.friction;
+    let x = item.velocity.x;
+    let y = item.velocity.y;
 
-    let movement = item.velocityX * 1;
-    let newX = item.x + movement * item.dirX;
+    if (x !== 0) {
+      x = x * item.friction;
 
-    this.adjustLocation(item, movement * item.dirX, 0);
+      if (Math.abs(x) < MIN_MOVE_VELOCITY) {
+        x = 0;
+      }
+      if (Math.abs(x) > MAX_MOVE_VELOCITY) {
+        x = MAX_MOVE_VELOCITY * Math.sign(x);
+      }
+    }
 
-    if (item.velocityX < MIN_MOVE_VELOCITY) {
-      item.velocityX = 0;
-    } else if (item.box.x0 <= this.area.x0 || item.box.x1 >= this.area.x1) {
-      item.dirX = item.dirX * -1;
-      newX += item.dirX;
+    if (y > 0) {
+      y = y / item.gravity;
+    } else if (y < 0) {
+      y = y * item.gravity;
+      if (y > MIN_JUMP_VELOCITY) {
+        y = START_FALL_VELOCITY.y;
+      }
+    }
+
+    if (y > MAX_FALL_VELOCITY) {
+      y = MAX_FALL_VELOCITY;
+    }
+
+    item.velocity = new Vector(x, y);
+
+    item.adjustLocation(item.velocity);
+
+    if (x !== 0) {
+      if (item.shape.min.x == this.area.min.x || item.shape.max.x == this.area.max.x) {
+        item.velocity = item.velocity.multiplyX(-1);
+      }
+    }
+
+    if (item.shape.min.y == this.area.min.y) {
+      item.velocity = item.velocity.changeY(START_FALL_VELOCITY.y);
+    }
+    if (item.shape.max.y == this.area.max.y) {
+      item.velocity = item.velocity.multiplyY(0);
     }
 
     item.itemChanged(item);
   }
 
-  adjustLocation(item, diffX, diffY) {
-    let changed = false;
-
-    let area = this.area;
-    let box = item.box;
-    let halfW = box.halfW;
-    let halfH = box.halfH;
-
-    if (diffX !== 0) {
-      let newX = item.x + diffX;
-
-      if (newX - halfW < area.x0) {
-        newX = area.x0 + halfW;
-      } else if (newX + halfW > area.x1) {
-        newX = area.x1 - halfW;
-      }
-
-      changed = item.x !== newX;
-      item.x = newX;
-    }
-
-    if (diffY !== 0) {
-      let newY = item.y + diffY;
-
-      if (newY - halfH < area.y0) {
-        newY = area.y0 + halfH;
-      } else if (newY + halfH > area.y1) {
-        newY = area.y1 - halfH;
-      }
-
-      changed = changed || item.y !== newY;
-      item.y = newY;
-    }
-
-    if (changed) {
-      box.x0 = item.x - halfW;
-      box.y0 = item.y - halfH;
-      box.x1 = item.x + halfW;
-      box.y1 = item.y + halfH;
-    };
-
-    return changed;
-  }
-
-  isHit(a, b) {
-    if (a === b) {
-      return false;
-    }
-
-    let boxA = a.box;
-    let boxB = b.box;
-
-    if (boxA.x1 < boxB.x0 || boxA.x0 > boxB.x1) {
-      return false;
-    }
-    if (boxA.y1 < boxB.y0 || boxA.y0 > boxB.y1) {
-      return false;
-    }
-
-    return true;
-  }
 }
