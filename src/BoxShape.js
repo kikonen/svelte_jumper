@@ -4,19 +4,25 @@ import Vector from './Vector.js';
 
 
 export default class BoxShape {
-  constructor(min, max) {
+  constructor({min, max, layer = 1} = {}) {
     bindMethods(this);
+    this.set(min, max);
+    this.layer = layer;
+  }
 
+  set(min, max) {
     this.min = min || new Vector();
     this.max = max || new Vector();
 
     this.dim = this.max.minus(this.min);
-
     this.volume = this.dim.x * this.dim.y;
   }
 
   intersect(b) {
     if (this === b) {
+      return false;
+    }
+    if (!(this.layer & b.layer)) {
       return false;
     }
 

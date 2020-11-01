@@ -30,6 +30,11 @@ export default class Vector {
     return new Vector(-this.x, -this.y);
   }
 
+  reset(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
   plus(b) {
     return new Vector(this.x + b.x, this.y + b.y);
   }
@@ -62,6 +67,28 @@ export default class Vector {
     return new Vector(this.x / scalar, this.y / scalar);
   }
 
+  dot(b) {
+    return this.x * b.x + this.y * b.y;
+  }
+
+  zeroIfBelow(minX, minY) {
+    let newX;
+    let newY;
+
+    if (Math.abs(this.x) < minX) {
+      newX = 0;
+    }
+    if (Math.abs(this.Y) < minY) {
+      newY = 0;
+    }
+
+    if (newX || newY) {
+      return new Vector(newX != null ? newX : this.x, newY != null ? newY : this.y);
+    }
+    return this;
+  }
+
+/*
   clamp(area) {
     let x = this.x;
     let y = this.y;
@@ -80,4 +107,5 @@ export default class Vector {
 
     return new Vector(x, y);
   }
+*/
 }

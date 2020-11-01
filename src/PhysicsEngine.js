@@ -1,13 +1,20 @@
 import {bindMethods} from './bindMethods.js';
 
 import Vector from './Vector.js';
+import Material from './Material.js';
 import BoxShape from './BoxShape.js';
+import Collision from './Collision.js';
 import Item from './Item.js';
 
 const WORLD_SPEED = 40;
 
+const WALL_THICKNESS = 10000;
+
 const START_LEFT_VELOCITY = new Vector(-3, 0);
 const START_RIGHT_VELOCITY = new Vector(3, 0);
+
+const MIN_X_VELOCITY = 0.01;
+const MIN_Y_VELOCITY = 0.01;
 
 const ADD_MOVE_VELOCITY = 1.4;
 const MIN_MOVE_VELOCITY = 0.1;
@@ -31,7 +38,7 @@ export default class PhysicsEngine {
 
     this.items = new Map();
 
-    this.area = new BoxShape();
+    this.setupBoundaries();
 
     this.controls = {
       nop: NOP,
@@ -40,7 +47,6 @@ export default class PhysicsEngine {
       ArrowUp: this.onUp,
       ArrowDown: this.onDown,
     };
-
   }
 
   onLeft(ev) {
@@ -56,6 +62,78 @@ export default class PhysicsEngine {
     this.fall(this.player);
   }
 
+  setupBoundaries() {
+    let wallMaterial = new Material({density: 10000, restitution: 1.5});
+    let skyMaterial = new Material({density: 10000, restitution: 1.5});
+    let groundMaterial = new Material({density: 10000, restitution: 1.5});
+
+    this.wallW = new Item({
+      type: 'world',
+      label: 'wallW',
+      shape: new BoxShape(),
+      material: wallMaterial,
+      gravity: 1,
+      friction: 1,
+    });
+
+    this.wallE = new Item({
+      type: 'world',
+      label: 'wallE',
+      shape: new BoxShape(),
+      material: wallMaterial,
+      gravity: 1,
+      friction: 1,
+    });
+
+    this.wallN = new Item({
+      type: 'world',
+      label: 'wallN',
+      shape: new BoxShape(),
+      material: skyMaterial,
+      gravity: 1,
+      friction: 1,
+    });
+
+    this.wallS = new Item({
+      type: 'world',
+      label: 'wallS',
+      shape: new BoxShape(),
+      material: groundMaterial,
+      gravity: 1,
+      friction: 1,
+    });
+
+    this.register(this.wallW);
+    this.register(this.wallE);
+    this.register(this.wallN);
+    this.register(this.wallS);
+
+    this.updateBoundaries();
+  }
+
+  updateBoundaries() {
+    let w = this.getWidth();
+    let h = this.getHeight();
+
+    if (this.oldW === w && this.oldH === h) {
+      return;
+    }
+
+    this.oldW = w;
+    this.oldH = h;
+
+    this.area = new BoxShape({ min: null, max: new Vector(w, h)});
+
+    const T = WALL_THICKNESS;
+
+    this.wallW.setShape(new BoxShape({min: new Vector(-T, -T), max: new Vector(1, h + T)}));
+    this.wallE.setShape(new BoxShape({min: new Vector(w - 1, -T), max: new Vector(w + T, h + T)}));
+
+    this.wallN.setShape(new BoxShape({min: new Vector(-T, -T), max: new Vector(w + T, 1)}));
+    this.wallS.setShape(new BoxShape({min: new Vector(-T, h - 1), max: new Vector(w + T, h + T)}));
+
+  }
+
   register(item) {
     item.engine = this;
     this.items.set(item.id, item);
@@ -66,7 +144,9 @@ export default class PhysicsEngine {
 
   subscribe(id, itemChanged) {
     let item = this.items.get(id);
-    item.itemChanged = itemChanged;
+    if (item) {
+      item.itemChanged = itemChanged;
+    }
   }
 
   getItem(id) {
@@ -86,6 +166,9 @@ export default class PhysicsEngine {
   }
 
   handleKeydown(event) {
+    if (!this.player) {
+      return;
+    }
     (this.controls[event.key] || this.controls[event.code] || this.controls.nop)(event);
   }
 
@@ -96,12 +179,17 @@ export default class PhysicsEngine {
     this.started = true;
     this.items.forEach(this.startItem);
 
-    this.fall(this.player);
+    if (this.player) {
+      this.fall(this.player);
+    }
 
+    this.currentTime = Date.now();
     this.timerId = setInterval(this.tick, WORLD_SPEED);
+//    requestAnimationFrame(this.tick);
   }
 
   stop() {
+    this.stopped = true;
     this.timerId = clearInterval(this.timerId);
     this.items.forEach(this.stopItem);
   }
@@ -118,42 +206,124 @@ export default class PhysicsEngine {
   }
 
   tick() {
-    this.area = new BoxShape(null, new Vector(this.getWidth(), this.getHeight()));
-
-    this.hitDetection();
-
-    this.items.forEach(function(item) { this.tickItem(item); }.bind(this));
-  }
-
-  hitDetection() {
-    this.items.forEach(function(item) {
-      this.itemHitDetection(item);
-    }.bind(this));
-  }
-
-  itemHitDetection(item) {
-    let hits = [];
-    this.items.forEach(function(b) {
-      if (item.intersect(b)) {
-        hits.push(b);
-      }
-    }.bind(this));
-
-    if (hits.length) {
+    if (this.stopped) {
+      return;
     }
+
+    let now = Date.now();
+    let elapsed = now - this.currentTime;
+    let timeScale = elapsed / WORLD_SPEED;
+
+//    console.log(timeScale, elapsed);
+
+    this.updateBoundaries();
+    this.collisionDetection();
+
+    this.items.forEach((item) => { this.tickItem(item, timeScale); });
+
+    this.currentTime = now;
+//    requestAnimationFrame(this.tick);
   }
 
-  tickItem(item) {
+  collisionDetection() {
+    this.items.forEach((item) => {
+      if (item.type !== 'world') {
+        this.itemCollisionDetection(item);
+      }
+    });
+  }
+
+  itemCollisionDetection(a) {
+    this.items.forEach((b) => {
+      if (a.intersect(b)) {
+        this.resolveCollision(a, b);
+      }
+    });
+  }
+
+  resolveCollision(a, b) {
+    let col = this.calculateCollision(a, b);
+    if (!col.normal) {
+      return;
+    }
+
+    // relative velocity
+    let rv = b.velocity.minus(a.velocity);
+
+    // Calculate relative velocity in terms of the normal direction
+    let velAlongNormal = rv.dot(col.normal);
+
+    // Do not resolve if velocities are separating
+    if (velAlongNormal > 0) {
+//      return;
+    }
+
+    // Calculate restitution
+    let e = Math.min(a.material.restitution, b.material.restitution);
+
+    // Calculate impulse scalar
+    let j = -(1 + e) * velAlongNormal;
+    j /= 1 / a.mass + 1 / b.mass;
+
+    // Apply impulse
+    let impulse = col.normal.multiply(j);
+    a.velocity = a.velocity.minus(impulse.multiply(1 / a.mass));
+    b.velocity = b.velocity.plus(impulse.multiply(1 / b.mass));
+  }
+
+  calculateCollision(a, b) {
+    // Vector from A to B
+    let n = a.pos.minus(b.pos);
+    let normal = null;
+    let penetration = null;
+
+    let boxA = a.shape;
+    let boxB = b.shape;
+
+    let overlapX = n.x < 0 ? boxB.max.x - boxA.min.x : boxA.max.x - boxB.min.x;
+    let overlapY = n.y < 0 ? boxB.max.y - boxA.min.y : boxA.max.y - boxB.min.y;
+
+    // SAT test on x axis
+    if (overlapX > 0) {
+      // SAT test on y axis
+      if (overlapY > 0) {
+        // Find out which axis is axis of least penetration
+        if (overlapX < overlapY) {
+          // Point towards B knowing that n points from A to B
+          if (n.x < 0) {
+            normal = new Vector(-1, 0);
+          } else {
+            normal = new Vector(1, 0);
+          }
+          penetration = overlapX;
+        } else {
+          // Point toward B knowing that n points from A to B
+          if (n.y < 0) {
+            normal = new Vector(0, -1);
+          } else {
+            normal = new Vector(0, 1);
+          }
+          penetration = overlapX;
+        }
+      }
+    }
+
+    return new Collision({a, b, penetration, normal});
+  }
+
+  tickItem(item, timeScale) {
+    item.velocity = item.velocity.zeroIfBelow(MIN_X_VELOCITY, MIN_Y_VELOCITY);
     if (!item.velocity.isEmpty()) {
-      this.handleMove(item);
+      this.handleMove(item, timeScale);
     }
   }
 
   jump(item) {
+/*
     if (item.velocity.y !== 0) {
       return;
     }
-
+*/
     item.velocity = item.velocity.plus(START_JUMP_VELOCITY);
   }
 
@@ -177,16 +347,13 @@ export default class PhysicsEngine {
     item.velocity = item.velocity.plus(START_RIGHT_VELOCITY);
   }
 
-  handleMove(item) {
+  handleMove(item, timeScale) {
     let x = item.velocity.x;
     let y = item.velocity.y;
 
     if (x !== 0) {
       x = x * item.friction;
 
-      if (Math.abs(x) < MIN_MOVE_VELOCITY) {
-        x = 0;
-      }
       if (Math.abs(x) > MAX_MOVE_VELOCITY) {
         x = MAX_MOVE_VELOCITY * Math.sign(x);
       }
@@ -207,22 +374,13 @@ export default class PhysicsEngine {
 
     item.velocity = new Vector(x, y);
 
-    item.adjustLocation(item.velocity);
+    let movement = new Vector(x * timeScale, y * timeScale);
 
-    if (x !== 0) {
-      if (item.shape.min.x == this.area.min.x || item.shape.max.x == this.area.max.x) {
-        item.velocity = item.velocity.multiplyX(-1);
-      }
-    }
+    item.adjustLocation(movement);
 
-    if (item.shape.min.y == this.area.min.y) {
-      item.velocity = item.velocity.changeY(START_FALL_VELOCITY.y);
+    if (item.itemChanged) {
+      item.itemChanged(item);
     }
-    if (item.shape.max.y == this.area.max.y) {
-      item.velocity = item.velocity.multiplyY(0);
-    }
-
-    item.itemChanged(item);
   }
 
 }

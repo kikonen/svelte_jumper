@@ -39,31 +39,32 @@
 
     let min = new Vector(middleX - w/2, middleY - h/2);
     let max = new Vector(middleX + w/2, middleY + h/2);
-    let shape = new BoxShape(min, max);
+    let shape = new BoxShape({min, max});
 
     let item = new Item({
       type: 'player',
       shape: shape,
-      material: new Material(5, 2),
+      material: new Material({density: 5, restitution: 0.7}),
       gravity: 0.9,
       friction: 0.9,
     });
     engine.register(item);
-    playerId = item.id;
+
+    return item.id;
   }
 
   function createPlatforms() {
-    platformIds = [];
+    let platformIds = [];
     let areaW = engine.getWidth();
     for (let i = 0; i < MAX_PLATFORMS; i++) {
       let w = 100;
       let h = 20;
       let middleX = w/2 + (areaW - w) * Math.random();
-      let middleY = h/2 + i * 80;
+      let middleY = h/2 + i * 80 + h/2;
 
       let min = new Vector(middleX - w/2, middleY - h/2)
       let max = new Vector(middleX + w/2, middleY + h/2)
-      let shape = new BoxShape(min, max);
+      let shape = new BoxShape({min, max});
 
       let velocity = new Vector(5 + 5 * Math.random(), 0);
       if (Math.random() > 0.5) {
@@ -73,7 +74,7 @@
       let item = new Item({
         type: 'platform',
         shape: shape,
-        material: new Material(10, 2),
+        material: new Material({density: 10, restitution: 0.9}),
         gravity: 1.3,
         friction: 1,
         velocity: velocity
@@ -81,13 +82,16 @@
       engine.register(item);
       platformIds.push(item.id);
     }
+    return platformIds;
   }
 
   function start() {
     engine = new PhysicsEngine(dispatch);
     engine.registerContainer(container);
-    createPlayer();
-    createPlatforms();
+
+    playerId = createPlayer();
+    platformIds = createPlatforms();
+
     started = true;
   }
 

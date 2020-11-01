@@ -13,13 +13,18 @@ export function nextId() {
 
 
 export default class Item {
-  constructor(data) {
+  constructor({type, label, shape, material, gravity, friction, velocity} = {}) {
     bindMethods(this);
 
     this.id = nextId();
-    this.data = data;
 
-    Object.assign(this, data);
+    this.type = type;
+    this.label = label;
+    this.shape = shape;
+    this.material = material;
+    this.gravity = gravity;
+    this.friction = friction;
+    this.velocity = velocity;
 
     if (this.gravity ==  null) {
       this.gravity = DEFAULT_GRAVITY;
@@ -32,6 +37,14 @@ export default class Item {
     this.velocity = this.velocity || new Vector();
     this.mass = this.material.density * this.shape.volume;
     this.isPlayer = this.type == 'player';
+
+    this.calculatePosition();
+  }
+
+  setShape(shape) {
+    this.shape = shape;
+    this.mass = this.material.density * this.shape.volume;
+    this.calculatePosition();
   }
 
   start() {
@@ -42,10 +55,25 @@ export default class Item {
   }
 
   intersect(b) {
-    this.shape.intersect(b.shape);
+    return this.shape.intersect(b.shape);
   }
 
   adjustLocation(movement) {
-    this.shape.move(movement, this.engine.area);
+    if (this.type =='world') {
+      return;
+    }
+
+    let box = this.shape;
+    box.move(movement, this.engine.area);
+    this.calculatePosition();
+  }
+
+  calculatePosition() {
+    let box = this.shape;
+
+    let middleX = (box.max.x - box.min.x) / 2;
+    let middleY = (box.max.y - box.min.y) / 2;
+
+    this.pos = new Vector(middleX, middleY);
   }
 }
