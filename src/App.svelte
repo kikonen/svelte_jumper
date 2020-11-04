@@ -44,8 +44,7 @@
     let item = new Item({
       type: 'player',
       shape: shape,
-      material: new Material({density: 5, restitution: 0.7}),
-      gravity: 0.9,
+      material: new Material({density: 3, restitution: 0.7}),
       friction: 0.9,
     });
     engine.register(item);
@@ -74,8 +73,7 @@
       let item = new Item({
         type: 'platform',
         shape: shape,
-        material: new Material({density: 10, restitution: 0.9}),
-        gravity: 1.3,
+        material: new Material({density: 100, restitution: 0.9}),
         friction: 1,
         velocity: velocity
       });
