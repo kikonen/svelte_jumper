@@ -1,7 +1,8 @@
 import {bindMethods} from './bindMethods.js';
 import Vector from './Vector.js';
 
-const DEFAULT_FRICTION = 0.9;
+const FRICTION = 0.9;
+const GRAVITY = 6.674e-11;
 
 
 let idBase = 0;
@@ -12,7 +13,7 @@ export function nextId() {
 
 
 export default class Item {
-  constructor({type, label, shape, material, gravity, friction, acceleration, velocity, force} = {}) {
+  constructor({type, label, shape, material, acceleration, gravity, gravityModifier = 1, velocity, force} = {}) {
     bindMethods(this);
 
     this.id = nextId();
@@ -21,22 +22,23 @@ export default class Item {
     this.label = label;
     this.shape = shape;
     this.material = material;
-    this.gravity = gravity;
-    this.friction = friction;
+    this.gravityModifier = gravityModifier;
     this.acceleration = acceleration || new Vector();
     this.velocity = velocity || new Vector();
     this.force = force || new Vector();
 
     if (this.gravity ==  null) {
-      this.gravity = 0;
+      this.gravity = GRAVITY;
     }
 
     if (this.friction ==  null) {
-      this.friction = DEFAULT_FRICTION;
+      this.friction = FRICTION;
     }
 
     this.mass = this.material.density * this.shape.volume;
-    this.isPlayer = this.type == 'player';
+
+    this.player = this.type == 'player';
+    this.world = this.type == 'world';
 
     this.calculatePosition();
   }

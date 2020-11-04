@@ -70,9 +70,9 @@ export default class PhysicsEngine {
   }
 
   setupBoundaries() {
-    let wallMaterial = new Material({density: 1000, restitution: 1.5});
-    let skyMaterial = new Material({density: 1000, restitution: 1.5});
-    let groundMaterial = new Material({density: 1000, restitution: 1.5});
+    let wallMaterial = new Material({density: 1, restitution: 1.5, friction: 0});
+    let skyMaterial = new Material({density: 1, restitution: 1.5, friction: 0});
+    let groundMaterial = new Material({density: 10, restitution: 1.2, friction: 0.5});
 
     this.wallW = new Item({
       type: 'world',
@@ -80,7 +80,7 @@ export default class PhysicsEngine {
       shape: new BoxShape(),
       material: wallMaterial,
       gravity: 0,
-      friction: 1,
+      gravityModifier: 0,
     });
 
     this.wallE = new Item({
@@ -89,7 +89,7 @@ export default class PhysicsEngine {
       shape: new BoxShape(),
       material: wallMaterial,
       gravity: 0,
-      friction: 1,
+      gravityModifier: 0,
     });
 
     this.wallN = new Item({
@@ -98,7 +98,7 @@ export default class PhysicsEngine {
       shape: new BoxShape(),
       material: skyMaterial,
       gravity: 0,
-      friction: 1,
+      gravityModifier: 0,
     });
 
     this.wallS = new Item({
@@ -107,7 +107,6 @@ export default class PhysicsEngine {
       shape: new BoxShape(),
       material: groundMaterial,
       gravity: GRAVITY,
-      friction: 1,
     });
 
     this.register(this.wallW);
@@ -147,7 +146,7 @@ export default class PhysicsEngine {
     this.items.push(item);
     this.byId.set(item.id, item);
 
-    if (item.isPlayer) {
+    if (item.player) {
       this.player = item;
     }
   }
@@ -230,7 +229,7 @@ export default class PhysicsEngine {
 
     this.items.forEach((item) => { item.clearTick() });
 
-//    this.applyForces();
+    this.applyForces();
     this.collisionDetection();
 
     this.items.forEach((item) => { this.tickItem(item, timeScale); });
@@ -250,7 +249,7 @@ export default class PhysicsEngine {
         continue;
       }
 
-      for (let j = i + 1; i < size; i++) {
+      for (let j = i + 1; j < size; j++) {
         let b = items[j];
         this.applyGravityForce(a, b);
       }
@@ -278,7 +277,7 @@ export default class PhysicsEngine {
     }
 
     // Compute force for this pair; k = 1000
-    const K = Math.abs(a.gravity - b.gravity);
+    const K = Math.min(a.gravity, b.gravity);
     let f = (K * a.mass * b.mass) / r * r;
 
     // Break it down into components
@@ -287,8 +286,8 @@ export default class PhysicsEngine {
 
     // Accumulate for first object
     let df = new Vector(fx, fy);
-    a.force = a.force.minus(df);
-    b.force = b.force.plus(df);
+    a.force = a.force.minus(df.multiply(a.gravityModifier));
+    b.force = b.force.plus(df.multiply(b.gravityModifier));
   }
 
   collisionDetection() {
@@ -300,7 +299,7 @@ export default class PhysicsEngine {
 
       for (let j = i + 1; j < size; j++) {
         let b = items[j];
-        if (a.type === 'world' && b.type === 'world') {
+        if (a.world && b.world) {
           continue;
         }
 
