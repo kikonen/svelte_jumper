@@ -9,7 +9,8 @@ import Item from './Item.js';
 const TICK_SPEED = 20;
 const WORLD_SPEED = 50;
 
-const GRAVITY = 6.674e-11;
+export const GRAVITY = 6.674e-11;
+//export const GRAVITY = 39.5;
 
 const WALL_THICKNESS = 10000;
 
@@ -19,8 +20,8 @@ const START_RIGHT_VELOCITY = new Vector(3, 0);
 const MIN_X_VELOCITY = 0.01;
 const MIN_Y_VELOCITY = 0.01;
 
-const MAX_X_VELOCITY = 20;
-const MAX_Y_VELOCITY = 20;
+const MAX_X_VELOCITY = 50;
+const MAX_Y_VELOCITY = 50;
 
 const MIN_X_ACCELERATION = 0.01;
 const MIN_Y_ACCELERATION = 0.01;
@@ -29,6 +30,7 @@ const MAX_X_ACCELERATION = 10;
 const MAX_Y_ACCELERATION = 10;
 
 const START_JUMP_VELOCITY = new Vector(0, -20);
+const START_JUMP_ACCELERATION = new Vector(0, -3);
 
 const START_FALL_VELOCITY = new Vector(0, 2);
 
@@ -39,6 +41,7 @@ export default class PhysicsEngine {
   constructor(dispatch) {
     bindMethods(this);
 
+    this.ticks = 0;
     this.dispatch = dispatch;
 
     this.items = [];
@@ -70,13 +73,13 @@ export default class PhysicsEngine {
   }
 
   setupBoundaries() {
-    let wallMaterial = new Material({density: 1, restitution: 1.5, friction: 0});
-    let skyMaterial = new Material({density: 1, restitution: 1.5, friction: 0});
-    let groundMaterial = new Material({density: 10, restitution: 1.2, friction: 0.5});
+    let wallMaterial = new Material({density: 1, restitution: 1, friction: 0});
+    let skyMaterial = new Material({density: 1, restitution: 1, friction: 0});
+    let groundMaterial = new Material({density: 8, restitution: 0.2, friction: 0.5});
 
     this.wallW = new Item({
       type: 'world',
-      label: 'wallW',
+      label: 'west',
       shape: new BoxShape(),
       material: wallMaterial,
       gravity: 0,
@@ -85,7 +88,7 @@ export default class PhysicsEngine {
 
     this.wallE = new Item({
       type: 'world',
-      label: 'wallE',
+      label: 'east',
       shape: new BoxShape(),
       material: wallMaterial,
       gravity: 0,
@@ -94,7 +97,7 @@ export default class PhysicsEngine {
 
     this.wallN = new Item({
       type: 'world',
-      label: 'wallN',
+      label: 'north',
       shape: new BoxShape(),
       material: skyMaterial,
       gravity: 0,
@@ -103,7 +106,7 @@ export default class PhysicsEngine {
 
     this.wallS = new Item({
       type: 'world',
-      label: 'wallS',
+      label: 'south',
       shape: new BoxShape(),
       material: groundMaterial,
       gravity: GRAVITY,
@@ -189,7 +192,7 @@ export default class PhysicsEngine {
     this.items.forEach(this.startItem);
 
     if (this.player) {
-      this.fall(this.player);
+//      this.fall(this.player);
     }
 
     this.currentTime = Date.now();
@@ -214,10 +217,45 @@ export default class PhysicsEngine {
     item.stop();
   }
 
+  jump(a) {
+    if (a.velocity.y < 0 || a.acceleration.y < 0) {
+      return;
+    }
+
+    a.velocity = a.velocity.plus(START_JUMP_VELOCITY);
+    a.acceleration = a.acceleration.plus(START_JUMP_ACCELERATION);
+
+    if (a.player) {
+//      console.log({JUMP: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y});
+    }
+  }
+
+  fall(a) {
+    a.velocity = a.velocity.plus(START_FALL_VELOCITY);
+  }
+
+  moveLeft(a) {
+    if (a.velocity.y > 0) {
+//      return;
+    }
+
+    a.velocity = a.velocity.plus(START_LEFT_VELOCITY);
+  }
+
+  moveRight(a) {
+    if (a.velocity.y > 0) {
+//      return;
+    }
+
+    a.velocity = a.velocity.plus(START_RIGHT_VELOCITY);
+  }
+
   tick() {
     if (this.stopped) {
       return;
     }
+
+    this.ticks += 1;
 
     let now = Date.now();
     let elapsed = now - this.currentTime;
@@ -227,15 +265,31 @@ export default class PhysicsEngine {
 
     this.updateBoundaries();
 
-    this.items.forEach((item) => { item.clearTick() });
+    // if (this.player.acceleration.y < 0 || this.player.velocity.y < 0) {
+    //   debugger
+    // }
+
+    this.items.forEach((item) => { item.clearTick(); });
 
     this.applyForces();
     this.collisionDetection();
 
     this.items.forEach((item) => { this.tickItem(item, timeScale); });
 
+    // if (this.player.acceleration.y < 0 || this.player.velocity.y < 0) {
+    //   debugger
+    // }
+
     this.currentTime = now;
 //    requestAnimationFrame(this.tick);
+  }
+
+  tickItem(item, timeScale) {
+    item.acceleration = item.acceleration.zeroIfBelow(MIN_X_ACCELERATION, MIN_Y_ACCELERATION);
+    item.velocity = item.velocity.zeroIfBelow(MIN_X_VELOCITY, MIN_Y_VELOCITY);
+    if (item.force.isPresent() || item.velocity.isPresent() || item.acceleration.isPresent()) {
+      this.handleMove(item, timeScale);
+    }
   }
 
   applyForces() {
@@ -245,12 +299,12 @@ export default class PhysicsEngine {
     for (let i = 0; i < size; i++) {
       let a = items[i];
 
-      if (!a.gravity) {
-        continue;
-      }
-
-      for (let j = i + 1; j < size; j++) {
+      for (let j = i + 1 ; j < size; j++) {
         let b = items[j];
+        if (!a.gravity || !b.gravity) {
+          continue;
+        }
+
         this.applyGravityForce(a, b);
       }
     }
@@ -261,33 +315,60 @@ export default class PhysicsEngine {
       return;
     }
 
+/*
     let col = this.calculateCollision(a, b);
     if (col.penetration != null) {
       return;
     }
+*/
 
     // distance between centers of objects
-    let dx = a.pos.x - b.pos.x;
-    let dy = a.pos.y - b.pos.y;
-    let r = Math.sqrt(dx * dx + dy * dy);
+    let n = this.distanceNormal(a, b);
+    let dx = n.x;
+    let dy = n.y;
 
-    // avoid division by 0
-    if (r < 1) {
-      r = 1;
+    let r2 = dx * dx + dy * dy;
+    let r = Math.sqrt(r2);
+
+    if (true) {
+      if (r < 0.1) {
+        return;
+      }
+
+      // Compute force for this pair; k = 1000
+      const K = Math.min(a.gravity, b.gravity);
+      let f = (K * a.mass * b.mass) / r * r;
+
+      // Break it down into components
+      let fx = f * dx / r;
+      let fy = f * dy / r;
+
+      // Accumulate for first object
+      let df = new Vector(fx, fy);
+      a.force = a.force.plus(df.multiply(a.gravityModifier));
+      b.force = b.force.minus(df.multiply(b.gravityModifier));
+
+      if (a.player) {
+//        console.log({t: this.ticks, FORCEa: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y, from: b.label});
+      }
+      if (b.player) {
+//        console.log({t: this.ticks, FORCEb: 1, f: b.force.y, a: b.acceleration.y, v: b.velocity.y, from: a.label});
+      }
+    } else {
+      // @see https://css-tricks.com/creating-your-own-gravity-and-space-simulator/
+      // => DOES NOT behave as desired
+      // => No idea from where this "f" calculation is taken
+      const K = b.gravity;
+      let f = (K * b.mass) / (r2 * Math.sqrt(r2 + 0.1));
+
+      // Break it down into components
+      let fx = f * dx / r;
+      let fy = f * dy / r;
+
+      // Accumulate for first object
+      let df = new Vector(fx, fy);
+      b.force = b.force.plus(df.multiply(a.gravityModifier));
     }
-
-    // Compute force for this pair; k = 1000
-    const K = Math.min(a.gravity, b.gravity);
-    let f = (K * a.mass * b.mass) / r * r;
-
-    // Break it down into components
-    let fx = f * dx / r;
-    let fy = f * dy / r;
-
-    // Accumulate for first object
-    let df = new Vector(fx, fy);
-    a.force = a.force.minus(df.multiply(a.gravityModifier));
-    b.force = b.force.plus(df.multiply(b.gravityModifier));
   }
 
   collisionDetection() {
@@ -305,6 +386,9 @@ export default class PhysicsEngine {
 
         if (a.intersect(b)) {
           this.resolveCollision(a, b, this.handled);
+        } else {
+          a.clearCollision(b);
+          b.clearCollision(a);
         }
       }
     }
@@ -312,9 +396,21 @@ export default class PhysicsEngine {
 
   resolveCollision(a, b) {
     let col = this.calculateCollision(a, b);
+
     if (!col.normal) {
+      a.clearCollision(b);
+      b.clearCollision(a);
       return;
     }
+
+    if (a.isCollision(b)) {
+      // NOTE KI try to avoid "stuck bouncing" collision
+//      console.log("COLL_SKIP");
+      return;
+    }
+
+    a.addCollision(b);
+    b.addCollision(a);
 
     // relative velocity
     let rv = b.velocity.minus(a.velocity);
@@ -328,21 +424,43 @@ export default class PhysicsEngine {
     }
 
     // Calculate restitution
-    let e = Math.min(a.material.restitution, b.material.restitution);
+    let e = (a.material.restitution + b.material.restitution) / 2;
+    let ea = e; //a.material.restitution;
+    let eb = e; //b.material.restitution;
 
     // Calculate impulse scalar
-    let j = -(1 + e) * velAlongNormal;
-    j /= 1 / a.mass + 1 / b.mass;
+    let ja = -(1 + ea) * velAlongNormal;
+    ja /= 1 / a.mass + 1 / b.mass;
+
+    let jb = -(1 + eb) * velAlongNormal;
+    jb /= 1 / a.mass + 1 / b.mass;
 
     // Apply impulse
-    let impulse = col.normal.multiply(j);
-    a.velocity = a.velocity.minus(impulse.multiply(1 / a.mass));
-    b.velocity = b.velocity.plus(impulse.multiply(1 / b.mass));
+    let impulseA = col.normal.multiply(ja);
+    let impulseB = col.normal.multiply(jb);
+
+    a.velocity = a.velocity.minus(impulseA.multiply(1 / a.mass));
+    b.velocity = b.velocity.plus(impulseB.multiply(1 / b.mass));
+
+    // NOTE KI collision kills acceleration
+    if (b.player && Math.sign(b.acceleration.y) !== Math.sign(b.velocity.y)) {
+//      debugger
+    }
+
+    a.acceleration.reset(0, 0);
+    b.acceleration.reset(0, 0);
+
+    if (a.player) {
+//      console.log({t: this.ticks, COLLa: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y, from: b.label});
+    }
+    if (b.player) {
+//      console.log({t: this.ticks, COLLb: 1, f: b.force.y, a: b.acceleration.y, v: b.velocity.y, from: a.label});
+    }
   }
 
   calculateCollision(a, b) {
     // Vector from A to B
-    let n = a.pos.minus(b.pos);
+    let n = this.distanceNormal(a, b);
     let normal = null;
     let penetration = null;
 
@@ -378,44 +496,51 @@ export default class PhysicsEngine {
     return new Collision({a, b, penetration, normal});
   }
 
-  tickItem(item, timeScale) {
-    item.accleration = item.velocity.zeroIfBelow(MIN_X_ACCELERATION, MIN_Y_ACCELERATION);
-    item.velocity = item.velocity.zeroIfBelow(MIN_X_VELOCITY, MIN_Y_VELOCITY);
-    if (!item.velocity.isEmpty()) {
-      this.handleMove(item, timeScale);
-    }
-  }
-
-  jump(item) {
-/*
-    if (item.velocity.y !== 0) {
-      return;
-    }
-*/
-    item.velocity = item.velocity.plus(START_JUMP_VELOCITY);
-  }
-
-  fall(item) {
-    item.velocity = item.velocity.plus(START_FALL_VELOCITY);
-  }
-
-  moveLeft(item) {
-    if (item.velocity.y > 0) {
-//      return;
+  distanceNormal(a, b) {
+    if (a.world === b.world) {
+      return a.pos.minus(b.pos);
     }
 
-    item.velocity = item.velocity.plus(START_LEFT_VELOCITY);
-  }
-
-  moveRight(item) {
-    if (item.velocity.y > 0) {
-//      return;
+    let sign = 1;
+    if (a.world) {
+      let t = a;
+      a = b;
+      b = t;
+      sign = -1;
     }
 
-    item.velocity = item.velocity.plus(START_RIGHT_VELOCITY);
+    let xa = a.pos.x;
+    let ya = a.pos.y;
+
+    let xb = b.pos.x;
+    let yb = b.pos.y;
+
+    let dx = 0;
+    let dy = 0;
+
+    switch (b.label) {
+    case 'north':
+      dy = b.shape.max.y - ya;
+      break;
+    case 'south':
+      dy = b.shape.min.y - ya;
+      break;
+    case 'west':
+      dx = b.shape.max.x - xa;
+      break;
+    case 'east':
+      dx = b.shape.min.x - xa;
+      break;
+    }
+
+    return new Vector(dx * sign, dy * sign);
   }
 
   handleMove(a, dt) {
+    if (a.player) {
+//      console.log({t: this.ticks, MOVE1: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y});
+    }
+
     let ax = a.acceleration.x;
     let ay = a.acceleration.y;
 
@@ -434,6 +559,10 @@ export default class PhysicsEngine {
     let vx = a.velocity.x;
     let vy = a.velocity.y;
 
+    if (a.player) {
+//      console.log({t: this.ticks, MOVE2: 1, f: a.force.y, a: ay, v: vy});
+    }
+
     vx += ax * dt;
     vy += ay * dt;
 
@@ -450,7 +579,30 @@ export default class PhysicsEngine {
 
     let movement = new Vector(vx * dt, vy * dt);
 
+    let px = a.pos.x;
+    let py = a.pos.y;
+
     a.move(movement);
+
+    if (false) {
+      let nx = a.pos.x;
+      let ny = a.pos.y;
+
+      if (px === nx) {
+        ax = 0;
+        vx = 0;
+      }
+      if (py === ny) {
+        ay = 0;
+        vy = 0;
+      }
+      a.acceleration.reset(ax, ay);
+      a.velocity.reset(vx, vy);
+    }
+
+    if (a.player) {
+//      console.log({t: this.ticks, MOVED: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y});
+    }
 
     if (a.itemChanged) {
       a.itemChanged(a);

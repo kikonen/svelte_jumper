@@ -10,7 +10,11 @@ export default class Vector {
   }
 
   isEmpty() {
-    return this.x == 0 && this.y == 0;
+    return this.x === 0 && this.y === 0;
+  }
+
+  isPresent() {
+    return this.x !== 0 || this.y !== 0;
   }
 
   magnitude() {
@@ -32,6 +36,14 @@ export default class Vector {
 
   reset(x, y) {
     this.x = x;
+    this.y = y;
+  }
+
+  resetX(x) {
+    this.x = x;
+  }
+
+  resetY(y) {
     this.y = y;
   }
 

@@ -1,8 +1,9 @@
 import {bindMethods} from './bindMethods.js';
 import Vector from './Vector.js';
+import {GRAVITY} from './PhysicsEngine.js';
 
 const FRICTION = 0.9;
-const GRAVITY = 6.674e-11;
+//const GRAVITY = 6.674e-11;
 
 
 let idBase = 0;
@@ -27,15 +28,11 @@ export default class Item {
     this.velocity = velocity || new Vector();
     this.force = force || new Vector();
 
-    if (this.gravity ==  null) {
-      this.gravity = GRAVITY;
-    }
-
-    if (this.friction ==  null) {
-      this.friction = FRICTION;
-    }
+    this.gravity = gravity == null ? GRAVITY : gravity;
 
     this.mass = this.material.density * this.shape.volume;
+
+    this.collisions = new Set();
 
     this.player = this.type == 'player';
     this.world = this.type == 'world';
@@ -62,6 +59,18 @@ export default class Item {
 
   intersect(b) {
     return this.shape.intersect(b.shape);
+  }
+
+  isCollision(b) {
+    return this.collisions.has(b.id);
+  }
+
+  addCollision(b) {
+    this.collisions.add(b.id);
+  }
+
+  clearCollision(b) {
+    this.collisions.delete(b.id);
   }
 
   move(movement) {

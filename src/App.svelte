@@ -32,8 +32,8 @@
     let areaW = engine.getWidth();
     let areaH = engine.getHeight();
 
-    let w = 50;
-    let h = 80;
+    let w = 40;
+    let h = 60;
     let middleX = (areaW / 2 - w/2);
     let middleY = areaH / 2 + h / 2;
 
@@ -44,7 +44,7 @@
     let item = new Item({
       type: 'player',
       shape: shape,
-      material: new Material({density: 2, restitution: 0.7}),
+      material: new Material({density: 2, restitution: 0.5}),
     });
     engine.register(item);
 
