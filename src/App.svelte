@@ -9,6 +9,7 @@
 
   import Item from './Item.js';
   import PhysicsEngine from './PhysicsEngine.js';
+  import {MATERIALS} from './PhysicsEngine.js';
 
   import Playfield from './Playfield.svelte';
   import Player from './Player.svelte';
@@ -39,12 +40,12 @@
 
     let min = new Vector(middleX - w/2, middleY - h/2);
     let max = new Vector(middleX + w/2, middleY + h/2);
-    let shape = new BoxShape({min, max});
+    let material = MATERIALS.human;
+    let shape = new BoxShape({min, max, material});
 
     let item = new Item({
       type: 'player',
       shape: shape,
-      material: new Material({density: 2, restitution: 0.5}),
     });
     engine.register(item);
 
@@ -62,7 +63,14 @@
 
       let min = new Vector(middleX - w/2, middleY - h/2)
       let max = new Vector(middleX + w/2, middleY + h/2)
-      let shape = new BoxShape({min, max});
+      let materials = {
+        fill: MATERIALS.brick,
+        north: MATERIALS.brick,
+        south: MATERIALS.brick,
+        west: MATERIALS.brick,
+        east: MATERIALS.brick,
+      };
+      let shape = new BoxShape({min, max, materials});
 
       let velocity = new Vector(5 + 5 * Math.random(), 0);
       if (Math.random() > 0.5) {
@@ -72,7 +80,6 @@
       let item = new Item({
         type: 'platform',
         shape: shape,
-        material: new Material({density: 5, restitution: 0.9}),
         gravityModifier: 0,
         velocity: velocity
       });

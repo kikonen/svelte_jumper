@@ -4,18 +4,40 @@ import Vector from './Vector.js';
 
 
 export default class BoxShape {
-  constructor({min, max, layer = 1} = {}) {
+  constructor({min, max, material, materials, layer = 1} = {}) {
     bindMethods(this);
-    this.set(min, max);
     this.layer = layer;
+
+    this.materials = materials;
+    if (this.materials == null) {
+      this.materials = {
+        fill: material,
+        north: material,
+        south: material,
+        west: material,
+        east: material,
+      };
+    }
+
+    this.set(min, max);
   }
 
   set(min, max) {
-    this.min = min || new Vector();
-    this.max = max || new Vector();
+    min = min || new Vector();
+    max = max || new Vector();
 
-    this.dim = this.max.minus(this.min);
+    this.min = min;
+    this.max = max;
+
+    this.dim = max.minus(min);
     this.volume = this.dim.x * this.dim.y;
+
+    this.mass = this.materials.fill.density * this.volume;
+
+    let middleX = (max.x + min.x) / 2;
+    let middleY = (max.y + min.y) / 2;
+
+    this.pos = new Vector(middleX, middleY);
   }
 
   intersect(b) {
@@ -34,6 +56,10 @@ export default class BoxShape {
     }
 
     return true;
+  }
+
+  getMaterial(normal) {
+    return this.materials.north;
   }
 
   move(movement, area) {
@@ -66,7 +92,6 @@ export default class BoxShape {
       y1 -= diffY;
     }
 
-    this.min = new Vector(x0, y0);
-    this.max = new Vector(x1, y1);
+    this.set(new Vector(x0, y0), new Vector(x1, y1));
   }
 }
