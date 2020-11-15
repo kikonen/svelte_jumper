@@ -35,12 +35,16 @@ const START_JUMP_ACCELERATION = new Vector(0, -3);
 const START_FALL_VELOCITY = new Vector(0, 2);
 
 export const MATERIALS = {
-  brick: new Material({density: 5, restitution: 0.4}),
-  human: new Material({density: 2, restitution: 0.5}),
-  sky: new Material({density: 1, restitution: 1, friction: 0}),
-  wall: new Material({density: 1, restitution: 1, friction: 0}),
-  ground: new Material({density: 8, restitution: 0.1, friction: 0.5}),
-  void: new Material({density: 0, restitution: 0, friction: 0}),
+  tar: new Material({label: 'tar', density: 5, restitution: 0, friction: 1}),
+  brick: new Material({label: 'brick', density: 5, restitution: 0.4}),
+  steel: new Material({label: 'steel', density: 5, restitution: 0.4}),
+  copper: new Material({label: 'copper', density: 5, restitution: 0.4}),
+  spring: new Material({label: 'spring', density: 5, restitution: 0.9}),
+  human: new Material({label: 'human', density: 2, restitution: 0.5}),
+  sky: new Material({label: 'sky', density: 1, restitution: 1, friction: 0}),
+  wall: new Material({label: 'wall', density: 1, restitution: 1, friction: 0}),
+  ground: new Material({label: 'ground', density: 8, restitution: 0.1, friction: 0.5}),
+  void: new Material({label: 'void', density: 0, restitution: 0, friction: 0}),
 };
 
 const NOP = function() {};
@@ -414,7 +418,15 @@ export default class PhysicsEngine {
 
     // Calculate restitution
     let materialA = boxA.getMaterial(col.normal);
-    let materialB = boxB.getMaterial(col.normal);
+    let materialB = boxB.getMaterial(col.normal.multiply(-1));
+
+    // console.log("n " + col.normal);
+    // console.log("a: " + a);
+    // console.log("b: " + b);
+
+    // console.log("a " + materialA);
+    // console.log("b " + materialB);
+
     let e = (materialA.restitution + materialB.restitution) / 2;
 
     // Calculate impulse scalar
@@ -422,11 +434,10 @@ export default class PhysicsEngine {
     j /= 1 / boxA.mass + 1 / boxB.mass;
 
     // Apply impulse
-    let impulseA = col.normal.multiply(j);
-    let impulseB = col.normal.multiply(j);
+    let impulse = col.normal.multiply(j);
 
-    a.velocity = a.velocity.minus(impulseA.multiply(1 / boxA.mass));
-    b.velocity = b.velocity.plus(impulseB.multiply(1 / boxB.mass));
+    a.velocity = a.velocity.minus(impulse.multiply(1 / boxA.mass));
+    b.velocity = b.velocity.plus(impulse.multiply(1 / boxB.mass));
 
     // NOTE KI collision kills acceleration
     if (b.player && Math.sign(b.acceleration.y) !== Math.sign(b.velocity.y)) {
@@ -453,8 +464,8 @@ export default class PhysicsEngine {
     let boxA = a.shape;
     let boxB = b.shape;
 
-    let overlapX = n.x > 0 ? boxB.max.x - boxA.min.x : boxA.max.x - boxB.min.x;
-    let overlapY = n.y > 0 ? boxB.max.y - boxA.min.y : boxA.max.y - boxB.min.y;
+    let overlapX = n.x > 0 ? boxA.max.x - boxB.min.x : boxB.max.x - boxA.min.x;
+    let overlapY = n.y > 0 ? boxA.max.y - boxB.min.y : boxB.max.y - boxA.min.y;
 
     if (overlapX < 0 || overlapY < 0) {
       return new Collision({a, b, penetration, normal});
@@ -487,7 +498,7 @@ export default class PhysicsEngine {
     let boxB = b.shape;
 
     if (a.world === b.world) {
-      return boxA.pos.minus(boxB.pos);
+      return boxB.pos.minus(boxA.pos);
     }
 
     let sign = 1;

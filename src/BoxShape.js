@@ -4,14 +4,19 @@ import Vector from './Vector.js';
 
 
 export default class BoxShape {
-  constructor({min, max, material, materials, layer = 1} = {}) {
+  constructor({min, max, fill, material, surfaces, layer = 1} = {}) {
     bindMethods(this);
     this.layer = layer;
 
-    this.materials = materials;
-    if (this.materials == null) {
-      this.materials = {
-        fill: material,
+    this.fill = fill;
+    this.surfaces = surfaces;
+
+    if (this.fill == null) {
+      this.fill = material;
+    }
+
+    if (this.surfaces == null) {
+      this.surfaces = {
         north: material,
         south: material,
         west: material,
@@ -19,7 +24,19 @@ export default class BoxShape {
       };
     }
 
+    this.surfaceX = new Map();
+    this.surfaceX.set(1, this.surfaces.east);
+    this.surfaceX.set(-1, this.surfaces.west);
+
+    this.surfaceY = new Map();
+    this.surfaceY.set(-1, this.surfaces.north);
+    this.surfaceY.set(1, this.surfaces.south);
+
     this.set(min, max);
+  }
+
+  toString() {
+    return `pos=${this.pos},mass=${this.mass},a=${this.min}-${this.max},fill=${this.fill}`;
   }
 
   set(min, max) {
@@ -32,7 +49,7 @@ export default class BoxShape {
     this.dim = max.minus(min);
     this.volume = this.dim.x * this.dim.y;
 
-    this.mass = this.materials.fill.density * this.volume;
+    this.mass = this.fill.density * this.volume;
 
     let middleX = (max.x + min.x) / 2;
     let middleY = (max.y + min.y) / 2;
@@ -59,7 +76,7 @@ export default class BoxShape {
   }
 
   getMaterial(normal) {
-    return this.materials.north;
+    return this.surfaceX.get(normal.x) || this.surfaceY.get(normal.y);
   }
 
   move(movement, area) {

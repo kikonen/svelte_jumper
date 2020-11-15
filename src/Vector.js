@@ -9,6 +9,10 @@ export default class Vector {
     this.y = y || 0;
   }
 
+  toString() {
+    return `[${this.x},${this.y}]`;
+  }
+
   isEmpty() {
     return this.x === 0 && this.y === 0;
   }

@@ -17,7 +17,8 @@
 
   export let name;
 
-  const MAX_PLATFORMS = 8;
+  const MIN_PLATFORM = 6;
+  const MAX_PLATFORM = 7;
   const dispatch = createEventDispatcher();
 
   let engine;
@@ -55,7 +56,7 @@
   function createPlatforms() {
     let platformIds = [];
     let areaW = engine.getWidth();
-    for (let i = 0; i < MAX_PLATFORMS; i++) {
+    for (let i = MIN_PLATFORM; i <= MAX_PLATFORM; i++) {
       let w = 100;
       let h = 20;
       let middleX = w/2 + (areaW - w) * Math.random();
@@ -63,14 +64,14 @@
 
       let min = new Vector(middleX - w/2, middleY - h/2)
       let max = new Vector(middleX + w/2, middleY + h/2)
-      let materials = {
-        fill: MATERIALS.brick,
-        north: MATERIALS.brick,
-        south: MATERIALS.brick,
-        west: MATERIALS.brick,
-        east: MATERIALS.brick,
+      let fill = MATERIALS.brick;
+      let surfaces = {
+        north: MATERIALS.tar,
+        south: MATERIALS.spring,
+        west: MATERIALS.steel,
+        east: MATERIALS.copper,
       };
-      let shape = new BoxShape({min, max, materials});
+      let shape = new BoxShape({min, max, fill, surfaces});
 
       let velocity = new Vector(5 + 5 * Math.random(), 0);
       if (Math.random() > 0.5) {

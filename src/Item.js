@@ -32,7 +32,12 @@ export default class Item {
     this.collisions = new Set();
 
     this.player = this.type == 'player';
+    this.platform = this.type == 'platform';
     this.world = this.type == 'world';
+  }
+
+  toString() {
+    return `${this.type}.${this.label}: shape: ${this.shape}, force: ${this.force}`;
   }
 
   setShape(shape) {
