@@ -51,10 +51,6 @@ export default class Item {
     this.velocity = new Vector();
   }
 
-  clearTick() {
-    this.force.reset(0, 0);
-  }
-
   intersect(b) {
     return this.shape.intersect(b.shape);
   }
@@ -72,7 +68,10 @@ export default class Item {
   }
 
   move(movement) {
-    if (this.type =='world') {
+    if (this.world) {
+      this.velocity = new Vector();
+      this.acceleration = new Vector();
+      this.force = new Vector();
       return;
     }
 

@@ -228,10 +228,6 @@ export default class PhysicsEngine {
 
     a.velocity = a.velocity.plus(START_JUMP_VELOCITY);
     a.acceleration = a.acceleration.plus(START_JUMP_ACCELERATION);
-
-    if (a.player) {
-//      console.log({JUMP: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y});
-    }
   }
 
   fall(a) {
@@ -269,30 +265,63 @@ export default class PhysicsEngine {
 
     this.updateBoundaries();
 
-    // if (this.player.acceleration.y < 0 || this.player.velocity.y < 0) {
-    //   debugger
-    // }
-
-    this.items.forEach((item) => { item.clearTick(); });
-
+    this.clearItems();
     this.applyForces();
-    this.collisionDetection();
-
-    this.items.forEach((item) => { this.tickItem(item, timeScale); });
-
-    // if (this.player.acceleration.y < 0 || this.player.velocity.y < 0) {
-    //   debugger
-    // }
+    this.tickItems(timeScale);
+    this.renderItems(timeScale);
 
     this.currentTime = now;
 //    requestAnimationFrame(this.tick);
   }
 
-  tickItem(item, timeScale) {
-    item.acceleration = item.acceleration.zeroIfBelow(MIN_X_ACCELERATION, MIN_Y_ACCELERATION);
-    item.velocity = item.velocity.zeroIfBelow(MIN_X_VELOCITY, MIN_Y_VELOCITY);
-    if (item.force.isPresent() || item.velocity.isPresent() || item.acceleration.isPresent()) {
-      this.handleMove(item, timeScale);
+  clearItems() {
+    let items = this.items;
+    let size = items.length;
+
+    for (let i = 0; i < size; i++) {
+      let a = items[i];
+
+      a.force.reset(0, 0);
+      a.acceleration = a.acceleration.zeroIfBelow(MIN_X_ACCELERATION, MIN_Y_ACCELERATION);
+      a.velocity = a.velocity.zeroIfBelow(MIN_X_VELOCITY, MIN_Y_VELOCITY);
+    }
+  }
+
+  tickItems(timeScale) {
+    let items = this.items;
+    let size = items.length;
+
+    for (let i = 0; i < size; i++) {
+      let a = items[i];
+      if (a.force.isPresent() || a.velocity.isPresent() || a.acceleration.isPresent()) {
+        this.updatePosition(a, timeScale);
+      }
+
+      for (let j = i + 1; j < size; j++) {
+        let b = items[j];
+        if (a.world && b.world) {
+          continue;
+        }
+
+        if (a.intersect(b)) {
+          this.resolveCollision(a, b);
+        } else {
+          a.clearCollision(b);
+          b.clearCollision(a);
+        }
+      }
+    }
+  }
+
+  renderItems(timeScale) {
+    let items = this.items;
+    let size = items.length;
+
+    for (let i = 0; i < size; i++) {
+      let a = items[i];
+      if (a.itemChanged) {
+        a.itemChanged(a);
+      }
     }
   }
 
@@ -315,19 +344,8 @@ export default class PhysicsEngine {
   }
 
   applyGravityForce(a, b) {
-    if (a === b) {
-      return;
-    }
-
     let boxA = a.shape;
     let boxB = b.shape;
-
-/*
-    let col = this.calculateCollision(a, b);
-    if (col.penetration != null) {
-      return;
-    }
-*/
 
     // distance between centers of objects
     let n = this.distanceNormal(a, b);
@@ -353,36 +371,6 @@ export default class PhysicsEngine {
     let df = new Vector(fx, fy);
     a.force = a.force.minus(df.multiply(a.gravityModifier));
     b.force = b.force.plus(df.multiply(b.gravityModifier));
-
-    if (a.player) {
-      //        console.log({t: this.ticks, FORCEa: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y, from: b.label});
-    }
-    if (b.player) {
-      //        console.log({t: this.ticks, FORCEb: 1, f: b.force.y, a: b.acceleration.y, v: b.velocity.y, from: a.label});
-    }
-  }
-
-  collisionDetection() {
-    let items = this.items;
-    let size = items.length;
-
-    for (let i = 0; i < size; i++) {
-      let a = items[i];
-
-      for (let j = i + 1; j < size; j++) {
-        let b = items[j];
-        if (a.world && b.world) {
-          continue;
-        }
-
-        if (a.intersect(b)) {
-          this.resolveCollision(a, b, this.handled);
-        } else {
-          a.clearCollision(b);
-          b.clearCollision(a);
-        }
-      }
-    }
   }
 
   resolveCollision(a, b) {
@@ -398,7 +386,6 @@ export default class PhysicsEngine {
 
     if (a.isCollision(b)) {
       // NOTE KI try to avoid "stuck bouncing" collision
-//      console.log("COLL_SKIP");
       return;
     }
 
@@ -420,13 +407,6 @@ export default class PhysicsEngine {
     let materialA = boxA.getMaterial(col.normal);
     let materialB = boxB.getMaterial(col.normal.multiply(-1));
 
-    // console.log("n " + col.normal);
-    // console.log("a: " + a);
-    // console.log("b: " + b);
-
-    // console.log("a " + materialA);
-    // console.log("b " + materialB);
-
     let e = (materialA.restitution + materialB.restitution) / 2;
 
     // Calculate impulse scalar
@@ -440,19 +420,8 @@ export default class PhysicsEngine {
     b.velocity = b.velocity.plus(impulse.multiply(1 / boxB.mass));
 
     // NOTE KI collision kills acceleration
-    if (b.player && Math.sign(b.acceleration.y) !== Math.sign(b.velocity.y)) {
-//      debugger
-    }
-
     a.acceleration.reset(0, 0);
     b.acceleration.reset(0, 0);
-
-    if (a.player) {
-//      console.log({t: this.ticks, COLLa: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y, from: b.label});
-    }
-    if (b.player) {
-//      console.log({t: this.ticks, COLLb: 1, f: b.force.y, a: b.acceleration.y, v: b.velocity.y, from: a.label});
-    }
   }
 
   calculateCollision(a, b) {
@@ -536,11 +505,7 @@ export default class PhysicsEngine {
     return new Vector(dx * sign, dy * sign);
   }
 
-  handleMove(a, dt) {
-    if (a.player) {
-//      console.log({t: this.ticks, MOVE1: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y});
-    }
-
+  updatePosition(a, dt) {
     let boxA = a.shape;
 
     let ax = a.acceleration.x;
@@ -560,10 +525,6 @@ export default class PhysicsEngine {
 
     let vx = a.velocity.x;
     let vy = a.velocity.y;
-
-    if (a.player) {
-//      console.log({t: this.ticks, MOVE2: 1, f: a.force.y, a: ay, v: vy});
-    }
 
     vx += ax * dt;
     vy += ay * dt;
@@ -585,29 +546,5 @@ export default class PhysicsEngine {
     let py = boxA.pos.y;
 
     a.move(movement);
-
-    if (false) {
-      let nx = boxA.pos.x;
-      let ny = boxA.pos.y;
-
-      if (px === nx) {
-        ax = 0;
-        vx = 0;
-      }
-      if (py === ny) {
-        ay = 0;
-        vy = 0;
-      }
-      a.acceleration.reset(ax, ay);
-      a.velocity.reset(vx, vy);
-    }
-
-    if (a.player) {
-//      console.log({t: this.ticks, MOVED: 1, f: a.force.y, a: a.acceleration.y, v: a.velocity.y});
-    }
-
-    if (a.itemChanged) {
-      a.itemChanged(a);
-    }
   }
 }

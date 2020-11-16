@@ -17,7 +17,7 @@
 
   export let name;
 
-  const MIN_PLATFORM = 6;
+  const MIN_PLATFORM = 0;
   const MAX_PLATFORM = 7;
   const dispatch = createEventDispatcher();
 
@@ -77,6 +77,7 @@
       if (Math.random() > 0.5) {
         velocity = velocity.reverse();
       }
+//      velocity = new Vector();
 
       let item = new Item({
         type: 'platform',
