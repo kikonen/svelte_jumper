@@ -140,11 +140,13 @@ export default class PhysicsEngine {
 
     const T = WALL_THICKNESS;
 
-    this.wallW.shape.set(new Vector(-T, -T), new Vector(1, h + T));
-    this.wallE.shape.set(new Vector(w - 1, -T), new Vector(w + T, h + T));
+    let overlap = 0;
 
-    this.wallN.shape.set(new Vector(-T, -T), new Vector(w + T, 1));
-    this.wallS.shape.set(new Vector(-T, h - 1), new Vector(w + T, h + T));
+    this.wallW.shape.set(new Vector(-T, -T), new Vector(overlap, h + T));
+    this.wallE.shape.set(new Vector(w - overlap, -T), new Vector(w + T, h + T));
+
+    this.wallN.shape.set(new Vector(-T, -T), new Vector(w + T, overlap));
+    this.wallS.shape.set(new Vector(-T, h - overlap), new Vector(w + T, h + T));
   }
 
   register(item) {
@@ -421,6 +423,9 @@ export default class PhysicsEngine {
 
     let reflect = new Vector(col.overlap.x * col.normal.x * -1, col.overlap.y * col.normal.y * -1);
     a.move(reflect);
+
+    a.clearCollision(b);
+    b.clearCollision(a);
 
     // NOTE KI collision kills acceleration
     a.acceleration.reset(0, 0);
