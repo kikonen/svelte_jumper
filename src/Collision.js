@@ -4,12 +4,12 @@ import Vector from './Vector.js';
 
 
 export default class Collision {
-  constructor({a, b, penetration, normal} = {}) {
+  constructor({a, b, overlap, normal} = {}) {
     bindMethods(this);
 
     this.a = a;
     this.b = b;
-    this.penetration = penetration;
-    this.normal = normal;
+    this.overlap = overlap || new Vector();
+    this.normal = normal || new Vector();
   }
 }

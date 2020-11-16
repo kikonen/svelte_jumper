@@ -201,7 +201,7 @@ export default class PhysicsEngine {
 
     this.currentTime = Date.now();
     this.timerId = setInterval(this.tick, TICK_SPEED);
-//    requestAnimationFrame(this.tick);
+    this.render();
   }
 
   stop() {
@@ -212,9 +212,6 @@ export default class PhysicsEngine {
 
   startItem(item) {
     item.start();
-    if (item.itemChanged) {
-      item.itemChanged(item);
-    }
   }
 
   stopItem(item) {
@@ -250,6 +247,23 @@ export default class PhysicsEngine {
     a.velocity = a.velocity.plus(START_RIGHT_VELOCITY);
   }
 
+  render() {
+    if (this.stopped) {
+      return;
+    }
+
+    let items = this.items;
+    let size = items.length;
+
+    for (let i = 0; i < size; i++) {
+      let a = items[i];
+      if (a.itemChanged) {
+        a.itemChanged(a);
+      }
+    }
+    requestAnimationFrame(this.render);
+  }
+
   tick() {
     if (this.stopped) {
       return;
@@ -268,10 +282,8 @@ export default class PhysicsEngine {
     this.clearItems();
     this.applyForces();
     this.tickItems(timeScale);
-    this.renderItems(timeScale);
 
     this.currentTime = now;
-//    requestAnimationFrame(this.tick);
   }
 
   clearItems() {
@@ -309,18 +321,6 @@ export default class PhysicsEngine {
           a.clearCollision(b);
           b.clearCollision(a);
         }
-      }
-    }
-  }
-
-  renderItems(timeScale) {
-    let items = this.items;
-    let size = items.length;
-
-    for (let i = 0; i < size; i++) {
-      let a = items[i];
-      if (a.itemChanged) {
-        a.itemChanged(a);
       }
     }
   }
@@ -419,6 +419,9 @@ export default class PhysicsEngine {
     a.velocity = a.velocity.minus(impulse.multiply(1 / boxA.mass));
     b.velocity = b.velocity.plus(impulse.multiply(1 / boxB.mass));
 
+    let reflect = new Vector(col.overlap.x * col.normal.x * -1, col.overlap.y * col.normal.y * -1);
+    a.move(reflect);
+
     // NOTE KI collision kills acceleration
     a.acceleration.reset(0, 0);
     b.acceleration.reset(0, 0);
@@ -428,7 +431,7 @@ export default class PhysicsEngine {
     // Vector from A to B
     let n = this.distanceNormal(a, b);
     let normal = null;
-    let penetration = null;
+    let overlap = new Vector();
 
     let boxA = a.shape;
     let boxB = b.shape;
@@ -437,8 +440,10 @@ export default class PhysicsEngine {
     let overlapY = n.y > 0 ? boxA.max.y - boxB.min.y : boxB.max.y - boxA.min.y;
 
     if (overlapX < 0 || overlapY < 0) {
-      return new Collision({a, b, penetration, normal});
+      return new Collision({a, b, overlap, normal});
     }
+
+    overlap.reset(overlapX, overlapY);
 
     // Find out which axis is axis of least penetration
     if (overlapX < overlapY) {
@@ -448,7 +453,6 @@ export default class PhysicsEngine {
       } else {
         normal = new Vector(1, 0);
       }
-      penetration = overlapX;
     } else {
       // Point toward B knowing that n points from A to B
       if (n.y < 0) {
@@ -456,10 +460,9 @@ export default class PhysicsEngine {
       } else {
         normal = new Vector(0, 1);
       }
-      penetration = overlapY;
     }
 
-    return new Collision({a, b, penetration, normal});
+    return new Collision({a, b, overlap, normal});
   }
 
   distanceNormal(a, b) {
