@@ -1,5 +1,6 @@
 import {bindMethods} from './bindMethods.js';
 
+import Area from './Area.js';
 import Vector from './Vector.js';
 import Material from './Material.js';
 import BoxShape from './BoxShape.js';
@@ -39,8 +40,8 @@ export const MATERIALS = {
   brick: new Material({label: 'brick', density: 5, restitution: 0.4}),
   steel: new Material({label: 'steel', density: 5, restitution: 0.4}),
   copper: new Material({label: 'copper', density: 5, restitution: 0.4}),
-  spring: new Material({label: 'spring', density: 5, restitution: 0.9}),
-  human: new Material({label: 'human', density: 2, restitution: 0.5}),
+  spring: new Material({label: 'spring', density: 5, restitution: 0.7}),
+  human: new Material({label: 'human', density: 1, restitution: 0.2}),
   sky: new Material({label: 'sky', density: 1, restitution: 1, friction: 0}),
   wall: new Material({label: 'wall', density: 1, restitution: 1, friction: 0}),
   ground: new Material({label: 'ground', density: 8, restitution: 0.1, friction: 0.5}),
@@ -136,7 +137,7 @@ export default class PhysicsEngine {
     this.oldW = w;
     this.oldH = h;
 
-    this.area = new BoxShape({ min: null, max: new Vector(w, h), material: MATERIALS.void });
+    this.area = new Area({ max: new Vector(w, h) });
 
     const T = WALL_THICKNESS;
 

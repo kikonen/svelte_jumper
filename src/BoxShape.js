@@ -1,15 +1,18 @@
 import {bindMethods} from './bindMethods.js';
 
+import Area from './Area.js';
 import Vector from './Vector.js';
 
 
 export default class BoxShape {
-  constructor({min, max, fill, material, surfaces, layer = 1} = {}) {
+  constructor({min, max, limits, fill, material, surfaces, layer = 1} = {}) {
     bindMethods(this);
     this.layer = layer;
 
     this.fill = fill;
     this.surfaces = surfaces;
+
+    this.limits = limits || new Area({min: new Vector(null, null), max: new Vector(null, null)});
 
     if (this.fill == null) {
       this.fill = material;
@@ -89,22 +92,27 @@ export default class BoxShape {
     let x1 = newMax.x;
     let y1 = newMax.y;
 
-    if (x0 < area.min.x) {
-      let diffX = x0 - area.min.x;
+    let minX = this.limits.min.x || area.min.x;
+    let maxX = this.limits.max.x || area.max.x;
+    let minY = this.limits.min.y || area.min.y;
+    let maxY = this.limits.max.y || area.max.y;
+
+    if (x0 < minX) {
+      let diffX = x0 - minX;
       x0 -= diffX;
       x1 -= diffX;
-    } else if (x1 > area.max.x) {
-      let diffX = x1 - area.max.x;
+    } else if (x1 > maxX) {
+      let diffX = x1 - maxX;
       x0 -= diffX;
       x1 -= diffX;
     }
 
-    if (y0 < area.min.y) {
-      let diffY = y0 - area.min.y;
+    if (y0 < minY) {
+      let diffY = y0 - minY;
       y0 -= diffY;
       y1 -= diffY;
-    } else if (y1 > area.max.y) {
-      let diffY = y1 - area.max.y;
+    } else if (y1 > maxY) {
+      let diffY = y1 - maxY;
       y0 -= diffY;
       y1 -= diffY;
     }

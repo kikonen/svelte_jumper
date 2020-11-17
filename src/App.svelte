@@ -3,6 +3,7 @@
   import {afterUpdate} from 'svelte';
   import { createEventDispatcher } from 'svelte';
 
+  import Area from './Area.js';
   import Vector from './Vector.js';
   import BoxShape from './BoxShape.js';
   import Material from './Material.js';
@@ -64,6 +65,9 @@
 
       let min = new Vector(middleX - w/2, middleY - h/2)
       let max = new Vector(middleX + w/2, middleY + h/2)
+
+      let limits = new Area({min: new Vector(null, min.y), max: new Vector(null, null)});
+
       let fill = MATERIALS.brick;
       let surfaces = {
         north: MATERIALS.tar,
@@ -71,7 +75,7 @@
         west: MATERIALS.steel,
         east: MATERIALS.copper,
       };
-      let shape = new BoxShape({min, max, fill, surfaces});
+      let shape = new BoxShape({min, max, limits, fill, surfaces});
 
       let velocity = new Vector(5 + 5 * Math.random(), 0);
       if (Math.random() > 0.5) {
@@ -82,7 +86,7 @@
       let item = new Item({
         type: 'platform',
         shape: shape,
-        gravityModifier: 0,
+        gravityModifier: -0.01,
         velocity: velocity
       });
       engine.register(item);
