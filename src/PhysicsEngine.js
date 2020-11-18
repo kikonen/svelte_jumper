@@ -339,6 +339,10 @@ export default class PhysicsEngine {
 
       for (let j = i + 1 ; j < size; j++) {
         let b = items[j];
+        if (a.world && b.world) {
+          continue;
+        }
+
         if (!a.gravity || !b.gravity) {
           continue;
         }
@@ -374,8 +378,10 @@ export default class PhysicsEngine {
 
     // Accumulate for first object
     let df = new Vector(fx, fy);
-    a.force = a.force.minus(df.multiply(a.gravityModifier));
-    b.force = b.force.plus(df.multiply(b.gravityModifier));
+    if (!a.world) {
+      a.force = a.force.plus(df.multiply(a.gravityModifier));
+    }
+    b.force = b.force.minus(df.multiply(b.gravityModifier));
   }
 
   resolveCollision(a, b) {
@@ -421,11 +427,19 @@ export default class PhysicsEngine {
     // Apply impulse
     let impulse = col.normal.multiply(j);
 
-    a.velocity = a.velocity.minus(impulse.multiply(1 / boxA.mass));
-    b.velocity = b.velocity.plus(impulse.multiply(1 / boxB.mass));
+    // NOTE KI only a can be world
+    if (!a.world) {
+      a.velocity = a.velocity.minus(impulse.multiply(boxA.massI));
+    }
+    b.velocity = b.velocity.plus(impulse.multiply(boxB.massI));
 
-    let reflect = new Vector(col.overlap.x * col.normal.x * -1, col.overlap.y * col.normal.y * -1);
-    a.move(reflect);
+    if (a.world) {
+      let reflect = new Vector(col.overlap.x * col.normal.x, col.overlap.y * col.normal.y);
+      b.move(reflect);
+    } else {
+      let reflect = new Vector(col.overlap.x * col.normal.x * -1, col.overlap.y * col.normal.y * -1);
+      a.move(reflect);
+    }
 
     a.clearCollision(b);
     b.clearCollision(a);
@@ -474,11 +488,8 @@ export default class PhysicsEngine {
   }
 
   distanceNormal(a, b) {
-    let boxA = a.shape;
-    let boxB = b.shape;
-
     if (a.world === b.world) {
-      return boxB.pos.minus(boxA.pos);
+      return b.shape.pos.minus(a.shape.pos);
     }
 
     let sign = 1;
@@ -488,6 +499,9 @@ export default class PhysicsEngine {
       b = t;
       sign = -1;
     }
+
+    let boxA = a.shape;
+    let boxB = b.shape;
 
     let xa = boxA.pos.x;
     let ya = boxA.pos.y;
