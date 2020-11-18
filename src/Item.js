@@ -21,6 +21,7 @@ export default class Item {
 
     this.type = type;
     this.label = label;
+
     this.shape = shape;
     this.gravityModifier = gravityModifier;
     this.acceleration = acceleration || new Vector();

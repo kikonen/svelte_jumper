@@ -8,4 +8,8 @@ export default class Area {
     this.min = min || new Vector();
     this.max = max || new Vector();
   }
+
+  toString() {
+    return `[${this.min}-${this.max}]`;
+  }
 }

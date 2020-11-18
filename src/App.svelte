@@ -71,7 +71,7 @@
       let fill = MATERIALS.brick;
       let surfaces = {
         north: MATERIALS.tar,
-        south: MATERIALS.spring,
+        south: MATERIALS.brick,
         west: MATERIALS.steel,
         east: MATERIALS.copper,
       };

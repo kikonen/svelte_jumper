@@ -203,13 +203,14 @@ export default class PhysicsEngine {
     }
 
     this.currentTime = Date.now();
-    this.timerId = setInterval(this.tick, TICK_SPEED);
+//    this.timerId = setInterva(this.tick, TICK_SPEED);
+    setTimeout(this.tick, TICK_SPEED);
     this.render();
   }
 
   stop() {
     this.stopped = true;
-    this.timerId = clearInterval(this.timerId);
+//    this.timerId = clearInterval(this.timerId);
     this.items.forEach(this.stopItem);
   }
 
@@ -287,6 +288,7 @@ export default class PhysicsEngine {
     this.tickItems(timeScale);
 
     this.currentTime = now;
+    setTimeout(this.tick, TICK_SPEED);
   }
 
   clearItems() {
@@ -414,7 +416,7 @@ export default class PhysicsEngine {
 
     // Calculate impulse scalar
     let j = -(1 + e) * velAlongNormal;
-    j /= 1 / boxA.mass + 1 / boxB.mass;
+    j /= boxA.massI + boxB.massI;
 
     // Apply impulse
     let impulse = col.normal.multiply(j);

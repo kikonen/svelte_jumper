@@ -53,6 +53,7 @@ export default class BoxShape {
     this.volume = this.dim.x * this.dim.y;
 
     this.mass = this.fill.density * this.volume;
+    this.massI = 1 / this.mass;
 
     let middleX = (max.x + min.x) / 2;
     let middleY = (max.y + min.y) / 2;
@@ -117,6 +118,11 @@ export default class BoxShape {
       y1 -= diffY;
     }
 
-    this.set(new Vector(x0, y0), new Vector(x1, y1));
+    this.min = new Vector(x0, y0);
+    this.max = new Vector(x1, y1);
+    let middleX = (x0 + x1) / 2;
+    let middleY = (y0 + y1) / 2;
+
+    this.pos = new Vector(middleX, middleY);
   }
 }
