@@ -77,7 +77,7 @@
       };
       let shape = new BoxShape({min, max, limits, fill, surfaces});
 
-      let velocity = new Vector(5 + 5 * Math.random(), 0);
+      let velocity = new Vector(3 + 3 * Math.random(), 0);
       if (Math.random() > 0.5) {
         velocity = velocity.reverse();
       }

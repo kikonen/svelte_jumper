@@ -21,6 +21,10 @@ export default class Vector {
     return this.x !== 0 || this.y !== 0;
   }
 
+  isInfinity() {
+    return this.magnitude() == Infinity;
+  }
+
   magnitude() {
     if (this.x == 0 && this.y == 0) {
       return 0;
@@ -30,8 +34,7 @@ export default class Vector {
 
   normalize() {
     let magnitude = this.magnitude();
-    this.x /= magnitude;
-    this.y /= magnitude;
+    return new Vector(this.x /= magnitude, this.y /= magnitude);
   }
 
   reverse() {
@@ -87,22 +90,27 @@ export default class Vector {
     return this.x * b.x + this.y * b.y;
   }
 
-  zeroIfBelow(minX, minY) {
-    let newX;
-    let newY;
-
-    if (Math.abs(this.x) < minX) {
-      newX = 0;
-    }
-    if (Math.abs(this.Y) < minY) {
-      newY = 0;
-    }
-
-    if (newX || newY) {
-      return new Vector(newX != null ? newX : this.x, newY != null ? newY : this.y);
+  zeroIfBelow(min) {
+    if (this.magnitude() < min) {
+      return new Vector();
     }
     return this;
   }
+
+  clamp(min, max) {
+    let m = this.magnitude();
+
+    if (m <= min) {
+      let ratio = Math.max(min, m) / m;
+      return new Vector(this.x / ratio, this.y / ratio);
+    } else if (m >= max) {
+      let ratio = Math.min(max, m) / m;
+      return new Vector(this.x * ratio, this.y * ratio);
+    }
+
+    return this;
+  }
+
 
 /*
   clamp(area) {

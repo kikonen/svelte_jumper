@@ -2,7 +2,7 @@ import {bindMethods} from './bindMethods.js';
 import Vector from './Vector.js';
 import {GRAVITY} from './PhysicsEngine.js';
 
-const FRICTION = 0.9;
+//const FRICTION = 0.9;
 //const GRAVITY = 6.674e-11;
 
 
@@ -27,6 +27,7 @@ export default class Item {
     this.acceleration = acceleration || new Vector();
     this.velocity = velocity || new Vector();
     this.force = force || new Vector();
+    this.movement = new Vector();
 
     this.gravity = gravity == null ? GRAVITY : gravity;
 

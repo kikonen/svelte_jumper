@@ -15,37 +15,95 @@ export const GRAVITY = 6.674e-11;
 
 const WALL_THICKNESS = 10000;
 
-const START_LEFT_VELOCITY = new Vector(-3, 0);
-const START_RIGHT_VELOCITY = new Vector(3, 0);
+const LEFT_FORCE = new Vector(-2000, 0);
+const LEFT_FLY_FORCE = new Vector(-500, 0);
 
-const MIN_X_VELOCITY = 0.01;
-const MIN_Y_VELOCITY = 0.01;
+const RIGHT_FORCE = new Vector(2000, 0);
+const RIGHT_FLY_FORCE = new Vector(500, 0);
 
-const MAX_X_VELOCITY = 50;
-const MAX_Y_VELOCITY = 50;
+const MIN_VELOCITY = 0.001;
+const MAX_VELOCITY = 25;
 
-const MIN_X_ACCELERATION = 0.01;
-const MIN_Y_ACCELERATION = 0.01;
+const MIN_ACCELERATION = 0.001;
+const MAX_ACCELERATION = 10;
 
-const MAX_X_ACCELERATION = 10;
-const MAX_Y_ACCELERATION = 10;
-
-const START_JUMP_VELOCITY = new Vector(0, -20);
-const START_JUMP_ACCELERATION = new Vector(0, -3);
+const JUMP_FORCE = new Vector(0, -5000);
+const JUMP_FLY_FORCE = new Vector(0, -100);
 
 const START_FALL_VELOCITY = new Vector(0, 2);
 
 export const MATERIALS = {
-  tar: new Material({label: 'tar', density: 5, restitution: 0, friction: 1}),
-  brick: new Material({label: 'brick', density: 5, restitution: 0.4}),
-  steel: new Material({label: 'steel', density: 5, restitution: 0.4}),
-  copper: new Material({label: 'copper', density: 5, restitution: 0.4}),
-  spring: new Material({label: 'spring', density: 5, restitution: 0.7}),
-  human: new Material({label: 'human', density: 1, restitution: 0.2}),
-  sky: new Material({label: 'sky', density: 1, restitution: 1, friction: 0}),
-  wall: new Material({label: 'wall', density: 1, restitution: 1, friction: 0}),
-  ground: new Material({label: 'ground', density: 8, restitution: 0.1, friction: 0.5}),
-  void: new Material({label: 'void', density: 0, restitution: 0, friction: 0}),
+  tar: new Material({
+    label: 'tar',
+    density: 5,
+    restitution: 0,
+    staticFriction: 4,
+    dynamicFriction: 4,
+  }),
+  brick: new Material({
+    label: 'brick',
+    density: 5,
+    restitution: 0.4,
+    staticFriction: 0.02,
+    dynamicFriction: 0.02,
+  }),
+  steel: new Material({
+    label: 'steel',
+    density: 5,
+    restitution: 0.4,
+    staticFriction: 0.02,
+    dynamicFriction: 0.02,
+  }),
+  copper: new Material({
+    label: 'copper',
+    density: 5,
+    restitution: 0.4,
+    staticFriction: 0.02,
+    dynamicFriction: 0.02,
+  }),
+  spring: new Material({
+    label: 'spring',
+    density: 5,
+    restitution: 0.7,
+    staticFriction: 0.02,
+    dynamicFriction: 0.01,
+  }),
+  human: new Material({
+    label: 'human',
+    density: 1,
+    restitution: 0.1,
+    staticFriction: 0.5,
+    dynamicFriction: 0.5,
+  }),
+  sky: new Material({
+    label: 'sky',
+    density: 1,
+    restitution: 1,
+    staticFriction: 0.01,
+    dynamicFriction: 0.01,
+  }),
+  wall: new Material({
+    label: 'wall',
+    density: 1,
+    restitution: 1,
+    staticFriction: 0.01,
+    dynamicFriction: 0.01,
+  }),
+  ground: new Material({
+    label: 'ground',
+    density: 8,
+    restitution: 0.1,
+    staticFriction: 0.4,
+    dynamicFriction: 0.4,
+  }),
+  void: new Material({
+    label: 'void',
+    density: 0,
+    restitution: 0,
+    staticFriction: 0,
+    dynamicFriction: 0,
+  }),
+
 };
 
 const NOP = function() {};
@@ -141,13 +199,11 @@ export default class PhysicsEngine {
 
     const T = WALL_THICKNESS;
 
-    let overlap = 0;
+    this.wallW.shape.set(new Vector(-T, -T), new Vector(0, T));
+    this.wallE.shape.set(new Vector(w, -T), new Vector(T, T));
 
-    this.wallW.shape.set(new Vector(-T, -T), new Vector(overlap, h + T));
-    this.wallE.shape.set(new Vector(w - overlap, -T), new Vector(w + T, h + T));
-
-    this.wallN.shape.set(new Vector(-T, -T), new Vector(w + T, overlap));
-    this.wallS.shape.set(new Vector(-T, h - overlap), new Vector(w + T, h + T));
+    this.wallN.shape.set(new Vector(-T, -T), new Vector(T, 0));
+    this.wallS.shape.set(new Vector(-T, h), new Vector(T, T));
   }
 
   register(item) {
@@ -222,33 +278,55 @@ export default class PhysicsEngine {
     item.stop();
   }
 
-  jump(a) {
-    if (a.velocity.y < 0 || a.acceleration.y < 0) {
-      return;
+  findSurface(a) {
+    let surface = null;
+    let items = this.items;
+    let size = items.length;
+
+    for (let i = 0; i < size; i++) {
+      let b = items[i];
+      if (a === b || !a.intersect(b)) {
+        continue;
+      }
+      let col = this.calculateCollision(a, b);
+      if (col.normal && col.normal.y > 0) {
+        surface = b;
+        break;
+      }
     }
 
-    a.velocity = a.velocity.plus(START_JUMP_VELOCITY);
-    a.acceleration = a.acceleration.plus(START_JUMP_ACCELERATION);
+    return surface;
+  }
+
+  jump(a) {
+    let surface = this.findSurface(a);
+    if (surface) {
+      a.movement = a.movement.plus(JUMP_FORCE);
+    } else {
+      a.movement = a.movement.plus(JUMP_FLY_FORCE);
+    }
   }
 
   fall(a) {
-    a.velocity = a.velocity.plus(START_FALL_VELOCITY);
+//    a.velocity = a.velocity.plus(START_FALL_VELOCITY);
   }
 
   moveLeft(a) {
-    if (a.velocity.y > 0) {
-//      return;
+    let surface = this.findSurface(a);
+    if (surface) {
+      a.movement = a.movement.plus(LEFT_FORCE);
+    } else {
+      a.movement = a.movement.plus(LEFT_FLY_FORCE);
     }
-
-    a.velocity = a.velocity.plus(START_LEFT_VELOCITY);
   }
 
   moveRight(a) {
-    if (a.velocity.y > 0) {
-//      return;
+    let surface = this.findSurface(a);
+    if (surface) {
+      a.movement = a.movement.plus(RIGHT_FORCE);
+    } else {
+      a.movement = a.movement.plus(RIGHT_FLY_FORCE);
     }
-
-    a.velocity = a.velocity.plus(START_RIGHT_VELOCITY);
   }
 
   render() {
@@ -299,8 +377,8 @@ export default class PhysicsEngine {
       let a = items[i];
 
       a.force.reset(0, 0);
-      a.acceleration = a.acceleration.zeroIfBelow(MIN_X_ACCELERATION, MIN_Y_ACCELERATION);
-      a.velocity = a.velocity.zeroIfBelow(MIN_X_VELOCITY, MIN_Y_VELOCITY);
+      a.acceleration = a.acceleration.zeroIfBelow(MIN_ACCELERATION);
+      a.velocity = a.velocity.zeroIfBelow(MIN_VELOCITY);
     }
   }
 
@@ -322,10 +400,10 @@ export default class PhysicsEngine {
 
         if (a.intersect(b)) {
           this.resolveCollision(a, b);
-        } else {
-          a.clearCollision(b);
-          b.clearCollision(a);
         }
+      }
+      if (false && a.player) {
+        console.log(`vy=${a.velocity.y},  ay=${a.acceleration.y}`);
       }
     }
   }
@@ -343,16 +421,60 @@ export default class PhysicsEngine {
           continue;
         }
 
-        if (!a.gravity || !b.gravity) {
-          continue;
-        }
-
+        this.applyFrictionForce(a, b);
         this.applyGravityForce(a, b);
       }
     }
   }
 
+  applyFrictionForce(a, b) {
+    if (!a.intersect(b)) {
+      return;
+    }
+    let col = this.calculateCollision(a, b);
+    if (!col.normal) {
+      return;
+    }
+
+    let boxA = a.shape;
+    let boxB = b.shape;
+
+    let t = col.rv.minus(col.normal.multiply(col.rv.dot(col.normal)));
+    t = t.normalize();
+
+    if (t.isEmpty() || t.isInfinity()) {
+      return;
+    }
+
+    let ma = col.materialA;
+    let mb = col.materialB;
+
+    let mus = Math.sqrt(ma.staticFriction * ma.staticFriction + mb.staticFriction * mb.staticFriction);
+
+    let jt = -col.rv.dot(t);
+    jt = jt / (boxA.massI + boxB.massI);
+
+    let impulse;
+    if (Math.abs(jt) < col.j * mus) {
+      impulse = t.multiply(jt);
+    } else {
+      let mud = Math.sqrt(ma.dynamicFriction * ma.dynamicFriction + mb.dynamicFriction * mb.dynamicFriction);
+      impulse = t.multiply(-col.j * mud);
+    }
+
+    a.velocity = a.velocity.minus(impulse.multiply(boxA.massI));
+    b.velocity = b.velocity.plus(impulse.multiply(boxB.massI));
+
+    console.log(impulse.multiply(boxB.massI).x);
+
+//    console.log(`a.friction = ${ma.friction}, b.friction = ${mb.friction} => ${f}`);
+  }
+
   applyGravityForce(a, b) {
+    if (!a.gravity || !b.gravity) {
+      return;
+    }
+
     let boxA = a.shape;
     let boxB = b.shape;
 
@@ -378,6 +500,8 @@ export default class PhysicsEngine {
 
     // Accumulate for first object
     let df = new Vector(fx, fy);
+
+    // NOTE KI only a can be world
     if (!a.world) {
       a.force = a.force.plus(df.multiply(a.gravityModifier));
     }
@@ -390,42 +514,16 @@ export default class PhysicsEngine {
     let boxB = b.shape;
 
     if (!col.normal) {
-      a.clearCollision(b);
-      b.clearCollision(a);
       return;
     }
-
-    if (a.isCollision(b)) {
-      // NOTE KI try to avoid "stuck bouncing" collision
-      return;
-    }
-
-    a.addCollision(b);
-    b.addCollision(a);
-
-    // relative velocity
-    let rv = b.velocity.minus(a.velocity);
-
-    // Calculate relative velocity in terms of the normal direction
-    let velAlongNormal = rv.dot(col.normal);
 
     // Do not resolve if velocities are separating
-    if (velAlongNormal > 0) {
-//      return;
+    if (col.velocityAlongNormal > 0) {
+      return;
     }
 
-    // Calculate restitution
-    let materialA = boxA.getMaterial(col.normal);
-    let materialB = boxB.getMaterial(col.normal.multiply(-1));
-
-    let e = (materialA.restitution + materialB.restitution) / 2;
-
-    // Calculate impulse scalar
-    let j = -(1 + e) * velAlongNormal;
-    j /= boxA.massI + boxB.massI;
-
     // Apply impulse
-    let impulse = col.normal.multiply(j);
+    let impulse = col.normal.multiply(col.j);
 
     // NOTE KI only a can be world
     if (!a.world) {
@@ -440,9 +538,6 @@ export default class PhysicsEngine {
       let reflect = new Vector(col.overlap.x * col.normal.x * -1, col.overlap.y * col.normal.y * -1);
       a.move(reflect);
     }
-
-    a.clearCollision(b);
-    b.clearCollision(a);
 
     // NOTE KI collision kills acceleration
     a.acceleration.reset(0, 0);
@@ -484,7 +579,24 @@ export default class PhysicsEngine {
       }
     }
 
-    return new Collision({a, b, overlap, normal});
+    // relative velocity
+    let rv = b.velocity.minus(a.velocity);
+
+    // Calculate relative velocity in terms of the normal direction
+    let velocityAlongNormal = rv.dot(normal);
+
+    // Calculate restitution
+    let materialA = boxA.getMaterial(normal);
+    let materialB = boxB.getMaterial(normal.multiply(-1));
+
+//    let e = (materialA.restitution * boxA.mass + materialB.restitution * boxB.mass) / (boxA.mass + boxB.mass);
+    let e = Math.min(materialA.restitution, materialB.restitution);
+
+    // Calculate impulse scalar
+    let j = -(1 + e) * velocityAlongNormal;
+    j /= boxA.massI + boxB.massI;
+
+    return new Collision({a, b, overlap, normal, rv, velocityAlongNormal, materialA, materialB, e, j});
   }
 
   distanceNormal(a, b) {
@@ -531,45 +643,59 @@ export default class PhysicsEngine {
   }
 
   updatePosition(a, dt) {
+    let dbg = true;
     let boxA = a.shape;
 
-    let ax = a.acceleration.x;
-    let ay = a.acceleration.y;
-
-    // ...acceleration
-    ax += a.force.x / boxA.mass;
-    ay += a.force.y / boxA.mass;
-
-    if (Math.abs(ax) > MAX_X_ACCELERATION) {
-      ax = MAX_X_ACCELERATION * Math.sign(ax);
+    if (dbg && a.player) {
+      console.log(`=========`);
+      console.log(`f=${a.force}`);
+      console.log(`m=${a.movement}`);
+      console.log(`v=${a.velocity}`);
+      console.log(`a=${a.acceleration}`);
     }
 
-    if (Math.abs(ay) > MAX_Y_ACCELERATION) {
-      ay = MAX_Y_ACCELERATION * Math.sign(ay);
+    let acceleration;
+    {
+      let ax = a.acceleration.x;
+      let ay = a.acceleration.y;
+
+      let fx = a.force.x + a.movement.x;
+      let fy = a.force.y + a.movement.y;
+
+      // ...acceleration
+      ax += fx / boxA.mass;
+      ay += fy / boxA.mass;
+
+      acceleration = new Vector(ax, ay);
+      acceleration = acceleration.clamp(MIN_ACCELERATION, MAX_ACCELERATION);
     }
 
-    let vx = a.velocity.x;
-    let vy = a.velocity.y;
+    let velocity;
+    {
+      let vx = a.velocity.x;
+      let vy = a.velocity.y;
 
-    vx += ax * dt;
-    vy += ay * dt;
+      vx += acceleration.x * dt;
+      vy += acceleration.y * dt;
 
-    if (Math.abs(vx) > MAX_X_VELOCITY) {
-      vx = MAX_X_VELOCITY * Math.sign(vx);
+      velocity = new Vector(vx, vy);
+      velocity = velocity.clamp(MIN_VELOCITY, MAX_VELOCITY);
     }
 
-    if (Math.abs(vy) > MAX_Y_VELOCITY) {
-      vy = MAX_Y_VELOCITY * Math.sign(vy);
-    }
+    a.acceleration = acceleration;
+    a.velocity = velocity;
 
-    a.acceleration = new Vector(ax, ay);
-    a.velocity = new Vector(vx, vy);
-
-    let movement = new Vector(vx * dt, vy * dt);
-
-    let px = boxA.pos.x;
-    let py = boxA.pos.y;
-
+    let movement = new Vector(velocity.x * dt, velocity.y * dt);
     a.move(movement);
+
+    if (dbg && a.player) {
+      console.log(`------------`);
+      console.log(`f=${a.force}`);
+      console.log(`m=${a.movement}`);
+      console.log(`v=${a.velocity}`);
+      console.log(`a=${a.acceleration}`);
+    }
+
+    a.movement.reset(0, 0);
   }
 }
