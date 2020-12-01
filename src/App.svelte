@@ -35,8 +35,8 @@
     let areaW = engine.getWidth();
     let areaH = engine.getHeight();
 
-    let w = 40;
-    let h = 60;
+    let w = 0.8;
+    let h = 1.8;
     let middleX = (areaW / 2 - w/2);
     let middleY = areaH / 2 + h / 2;
 
@@ -47,6 +47,7 @@
 
     let item = new Item({
       type: 'player',
+      label: 'player',
       shape: shape,
     });
     engine.register(item);
@@ -58,10 +59,10 @@
     let platformIds = [];
     let areaW = engine.getWidth();
     for (let i = MIN_PLATFORM; i <= MAX_PLATFORM; i++) {
-      let w = 100;
-      let h = 20;
+      let w = 8;
+      let h = 0.7;
       let middleX = w/2 + (areaW - w) * Math.random();
-      let middleY = h/2 + i * 80 + h/2;
+      let middleY = h/2 + i * 4 + h/2;
 
       let min = new Vector(middleX - w/2, middleY - h/2)
       let max = new Vector(middleX + w/2, middleY + h/2)
@@ -77,7 +78,7 @@
       };
       let shape = new BoxShape({min, max, limits, fill, surfaces});
 
-      let velocity = new Vector(3 + 3 * Math.random(), 0);
+      let velocity = new Vector(0.5 + 2 * Math.random(), 0);
       if (Math.random() > 0.5) {
         velocity = velocity.reverse();
       }
@@ -85,6 +86,7 @@
 
       let item = new Item({
         type: 'platform',
+        label: `platform-${i}`,
         shape: shape,
         gravityModifier: -0.01,
         velocity: velocity
@@ -132,9 +134,17 @@
       engine.handleKeydown(ev);
     }
   }
+
+  function handleKeyup(ev) {
+    if (engine) {
+      engine.handleKeyup(ev);
+    }
+  }
 </script>
 
-<svelte:window on:keydown={handleKeydown}/>
+<svelte:window on:keydown={handleKeydown}
+               on:keyup={handleKeyup}
+/>
 
 <main>
   <button on:click={toggleGame}>{started ? 'Stop' : 'Start'}</button>

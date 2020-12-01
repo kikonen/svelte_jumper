@@ -53,8 +53,8 @@ export default class Item {
     this.velocity = new Vector();
   }
 
-  intersect(b) {
-    return this.shape.intersect(b.shape);
+  intersect(b, tolerance) {
+    return this.shape.intersect(b.shape, tolerance);
   }
 
   isCollision(b) {

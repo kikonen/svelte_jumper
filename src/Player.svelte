@@ -22,11 +22,11 @@
   }
 
   function itemChanged(item) {
-    let shape = item.shape;
-    x = shape.min.x;
-    y = shape.min.y;
-    width = shape.dim.x;
-    height = shape.dim.y;
+    let d = item.shape.display;
+    x = d.min.x;
+    y = d.min.y;
+    width = d.max.x - d.min.x;
+    height = d.max.y - d.min.y;
   }
 
   onMount(function() {

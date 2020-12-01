@@ -1,5 +1,7 @@
 import {bindMethods} from './bindMethods.js';
 
+import { WORLD_SCALE } from './PhysicsEngine.js';
+
 import Area from './Area.js';
 import Vector from './Vector.js';
 
@@ -35,6 +37,8 @@ export default class BoxShape {
     this.surfaceY.set(-1, this.surfaces.north);
     this.surfaceY.set(1, this.surfaces.south);
 
+    this.display = new Area({min: new Vector(0, 0), max: new Vector(0, 0)});
+
     this.set(min, max);
   }
 
@@ -58,10 +62,16 @@ export default class BoxShape {
     let middleX = (max.x + min.x) / 2;
     let middleY = (max.y + min.y) / 2;
 
+    this.height = this.max.y - this.min.y;
+    this.width = this.max.x - this.min.x;
+
     this.pos = new Vector(middleX, middleY);
+
+    this.display.min.reset(this.min.x * WORLD_SCALE, this.min.y * WORLD_SCALE);
+    this.display.max.reset(this.max.x * WORLD_SCALE, this.max.y * WORLD_SCALE);
   }
 
-  intersect(b) {
+  intersect(b, tolerance) {
     if (this === b) {
       return false;
     }
@@ -69,10 +79,10 @@ export default class BoxShape {
       return false;
     }
 
-    if (this.max.x < b.min.x || this.min.x > b.max.x) {
+    if (this.max.x + tolerance < b.min.x || this.min.x - tolerance > b.max.x) {
       return false;
     }
-    if (this.max.y < b.min.y || this.min.y > b.max.y) {
+    if (this.max.y + tolerance < b.min.y || this.min.y - tolerance > b.max.y) {
       return false;
     }
 
@@ -124,5 +134,8 @@ export default class BoxShape {
     let middleY = (y0 + y1) / 2;
 
     this.pos = new Vector(middleX, middleY);
+
+    this.display.min.reset(this.min.x * WORLD_SCALE, this.min.y * WORLD_SCALE);
+    this.display.max.reset(this.max.x * WORLD_SCALE, this.max.y * WORLD_SCALE);
   }
 }
