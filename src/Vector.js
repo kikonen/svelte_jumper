@@ -26,6 +26,7 @@ export default class Vector {
   }
 
   magnitude() {
+    // NOTE KI null => 0 magnitude
     if (this.x == 0 && this.y == 0) {
       return 0;
     }
@@ -58,14 +59,17 @@ export default class Vector {
   reset(x, y) {
     this.x = x;
     this.y = y;
+    return this;
   }
 
   resetX(x) {
     this.x = x;
+    return this;
   }
 
   resetY(y) {
     this.y = y;
+    return this;
   }
 
   plus(b) {

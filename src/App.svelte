@@ -71,7 +71,10 @@
       let min = new Vector(middleX - w/2, middleY - h/2)
       let max = new Vector(middleX + w/2, middleY + h/2)
 
-      let limits = new Area({min: new Vector(null, min.y), max: new Vector(null, max.y + h * 4)});
+      let limits = new Area({
+        min: new Vector(null, min.y).resetX(null),
+        max: new Vector(null, max.y + h * 4).resetX(null)
+      });
 
       let fill = MATERIALS.brick;
       let surfaces = {

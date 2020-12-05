@@ -103,10 +103,10 @@ export default class BoxShape {
     let x1 = newMax.x;
     let y1 = newMax.y;
 
-    let minX = this.limits.min.x;// || area.min.x;
-    let maxX = this.limits.max.x;// || area.max.x;
-    let minY = this.limits.min.y;// || area.min.y;
-    let maxY = this.limits.max.y;// || area.max.y;
+    let minX = this.limits.min.x || area.min.x;
+    let maxX = this.limits.max.x || area.max.x;
+    let minY = this.limits.min.y || area.min.y;
+    let maxY = this.limits.max.y || area.max.y;
 
     let hit = new Vector();
 
@@ -115,13 +115,17 @@ export default class BoxShape {
       x0 -= diffX;
       x1 -= diffX;
 
-      hit.x = -1;
+      if (this.limits.min.x && this.limits.min.x > area.min.x) {
+        hit.x = -1;
+      }
     } else if (maxX && x1 >= maxX) {
       let diffX = x1 - maxX;
       x0 -= diffX;
       x1 -= diffX;
 
-      hit.x = 1;
+      if (this.limits.max.x && this.limits.max.x < area.max.x) {
+        hit.x = 1;
+      }
     }
 
     if (minY && y0 <= minY) {
@@ -129,13 +133,17 @@ export default class BoxShape {
       y0 -= diffY;
       y1 -= diffY;
 
-      hit.y = -1;
+      if (this.limits.min.y && this.limits.min.y > area.min.y) {
+        hit.y = -1;
+      }
     } else if (maxY && y1 >= maxY) {
       let diffY = y1 - maxY;
       y0 -= diffY;
       y1 -= diffY;
 
-      hit.y = 1;
+      if (this.limits.max.y && this.limits.max.y < area.max.y) {
+        hit.y = 1;
+      }
     }
 
     this.min = new Vector(x0, y0);

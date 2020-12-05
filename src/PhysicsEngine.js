@@ -8,6 +8,7 @@ import Collision from './Collision.js';
 import Item from './Item.js';
 
 const TICK_SPEED = 10;
+// timescale ~ 0.2
 const WORLD_SPEED = 80;
 
 export const WORLD_SCALE = 20.0;
@@ -81,7 +82,7 @@ export const MATERIALS = {
     density: 60,
     restitution: 0.1,
     staticFriction: 0.5,
-    dynamicFriction: 0.5,
+    dynamicFriction: 0.1,
   }),
   sky: new Material({
     label: 'sky',
@@ -102,7 +103,7 @@ export const MATERIALS = {
     density: 80,
     restitution: 0.1,
     staticFriction: 0.5,
-    dynamicFriction: 0.05,
+    dynamicFriction: 0.25,
   }),
   void: new Material({
     label: 'void',
@@ -492,7 +493,7 @@ export default class PhysicsEngine {
       return;
     }
 
-    if (col.rv < FRICTION_STATIC_VELOCITY) {
+    if (col.rv.magnitude() < FRICTION_STATIC_VELOCITY) {
       frictionA = ma.staticFriction;
       frictionB = mb.staticFriction;
     }
@@ -500,7 +501,7 @@ export default class PhysicsEngine {
     let fn = fa.plus(fb);
 
     let ffa = new Vector(frictionB * fa.y * t.x, frictionB * fa.x * t.y);
-    let ffb = new Vector(frictionA * fb.y * t.x, frictionA * fb.x * t.y);
+    let ffb = new Vector(-1 * frictionA * fb.y * t.x, -1 * frictionA * fb.x * t.y);
 
     a.force = a.force.plus(ffa);
     b.force = b.force.plus(ffb);
