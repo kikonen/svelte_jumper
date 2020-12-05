@@ -40,12 +40,18 @@
 </script>
 
 <player bind:this={el} style="left: {x}px; top: {y}px; height: {height}px; width: {width}px;">
+  <img class="image" src="../game/stick_run.png" />
 </player>
 
 <style>
   player {
-    background-color: red;
+/*//    background-color: red;*/
+
     position: absolute;
     z-index: 1;
+  }
+  .image {
+    width: 100%;
+    height: 100%;
   }
 </style>

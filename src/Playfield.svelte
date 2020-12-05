@@ -22,6 +22,10 @@
 <style>
   playfield {
     background-color: lightgray;
+    background-image: url('../game/wall.jpg');
+    background-repeat: repeat;
+    background-size: 800px;
+    background-position: left top;
 
     width: 100%;
     height: 100%;
