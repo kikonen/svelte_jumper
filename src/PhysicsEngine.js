@@ -36,13 +36,16 @@ const START_FALL_VELOCITY = new Vector(0, 2);
 const FRICTION_TOLERANCE = 0.1;
 const COLLISION_TOLERANCE = 0;
 
+const FRICTION_STATIC_VELOCITY = 0.01;
+
+
 export const MATERIALS = {
   tar: new Material({
     label: 'tar',
     density: 60,
     restitution: 0,
-    staticFriction: 10000,
-    dynamicFriction: 10000,
+    staticFriction: 1,
+    dynamicFriction: 1,
   }),
   brick: new Material({
     label: 'brick',
@@ -354,6 +357,7 @@ export default class PhysicsEngine {
     let elapsed = now - this.currentTime;
     let timeScale = elapsed / WORLD_SPEED;
 
+    timeScale = 0.2;
 //    console.log(timeScale, elapsed);
 
     this.updateBoundaries();
@@ -408,6 +412,29 @@ export default class PhysicsEngine {
   }
 
   applyForces(dt) {
+    this.applyGravityForces(dt);
+    this.applyFrictionForces(dt);
+  }
+
+  applyGravityForces(dt) {
+    let items = this.items;
+    let size = items.length;
+
+    for (let i = 0; i < size; i++) {
+      let a = items[i];
+
+      for (let j = i + 1 ; j < size; j++) {
+        let b = items[j];
+        if (a.world && b.world) {
+          continue;
+        }
+
+        this.applyGravityForce(a, b, dt);
+      }
+    }
+  }
+
+  applyFrictionForces(dt) {
     let items = this.items;
     let size = items.length;
 
@@ -421,16 +448,67 @@ export default class PhysicsEngine {
         }
 
         this.applyFrictionForce(a, b, dt);
-        this.applyGravityForce(a, b, dt);
       }
     }
   }
 
   /**
+   * https://en.wikipedia.org/wiki/Friction
+   *
+   * - The friction force between two surfaces after sliding begins is the product of the coefficient of kinetic friction and the normal force: Ff = u * Fn
+   *
    * https://gamedevelopment.tutsplus.com/tutorials/how-to-create-a-custom-2d-physics-engine-friction-scene-and-jump-table--gamedev-7765
    * https://gamedev.stackexchange.com/questions/37889/friction-in-2d-game
    */
   applyFrictionForce(a, b, dt) {
+    if (!a.intersect(b, FRICTION_TOLERANCE)) {
+      return;
+    }
+    let col = this.calculateCollision(a, b, FRICTION_TOLERANCE);
+    if (!col.normal) {
+      return;
+    }
+
+    this.debugItem(a, dt, "FRICTION-START-A");
+    this.debugItem(b, dt, "FRICTION-START-B");
+
+    let boxA = a.shape;
+    let boxB = b.shape;
+
+    let fa = a.force;
+    let fb = b.force;
+
+    let ma = col.materialA;
+    let mb = col.materialB;
+
+    let frictionA = ma.dynamicFriction;
+    let frictionB = mb.dynamicFriction;
+
+    let t = col.rv.minus(col.normal.multiply(col.rv.dot(col.normal)));
+    t = t.normalize();
+
+    if (t.isEmpty() || t.isInfinity()) {
+      return;
+    }
+
+    if (col.rv < FRICTION_STATIC_VELOCITY) {
+      frictionA = ma.staticFriction;
+      frictionB = mb.staticFriction;
+    }
+
+    let fn = fa.plus(fb);
+
+    let ffa = new Vector(frictionB * fa.y * t.x, frictionB * fa.x * t.y);
+    let ffb = new Vector(frictionA * fb.y * t.x, frictionA * fb.x * t.y);
+
+    a.force = a.force.plus(ffa);
+    b.force = b.force.plus(ffb);
+
+    this.debugItem(a, dt, "FRICTION-END-A");
+    this.debugItem(b, dt, "FRICTION-END-B");
+  }
+
+  applyFrictionForceOLD(a, b, dt) {
     if (!a.intersect(b, FRICTION_TOLERANCE)) {
       return;
     }
@@ -472,8 +550,6 @@ export default class PhysicsEngine {
     let velB = b.velocity.plus(impulse.multiply(boxB.massI));
     a.velocity = velA;
     b.velocity = velB;
-
-//    console.log(impulse.multiply(boxB.massI).x);
 
     this.debugItem(a, dt, "FRICTION-END-A");
     this.debugItem(b, dt, "FRICTION-END-B");
