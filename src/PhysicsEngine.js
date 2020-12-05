@@ -652,8 +652,8 @@ export default class PhysicsEngine {
         b.acceleration.reset(b.acceleration.x, 0);
       }
     }
-    a.acceleration.reset(0, 0);
-    b.acceleration.reset(0, 0);
+//    a.acceleration.reset(0, 0);
+//    b.acceleration.reset(0, 0);
 
     this.debugItem(a, dt, "COLL-END-A");
     this.debugItem(b, dt, "COLL-EBD-B");
@@ -809,22 +809,13 @@ export default class PhysicsEngine {
     if (!this.debug) {
       return;
     }
+    this.dumpItem(a, dt, label);
+  }
 
+  dumpItem(a, dt, label) {
     let mark = `${label}-${a.label}`;
-    if (false) {
-      console.log(`${mark} ${this.ticks} - ${dt} -----`);
-      console.log(`${mark} f=${a.force}`);
-      console.log(`${mark} m=${a.movement}`);
-      console.log(`${mark} v=${a.velocity}`);
-      console.log(`${mark} a=${a.acceleration}`);
-    }
-
     if (true) {
       console.log(`${mark} ${this.ticks} - ${dt}\nv=${a.velocity} - a=${a.acceleration}\nf=${a.force} - m=${a.movement}`);
-    }
-
-    if (false) {
-      console.table({ e: { x: mark, y: this.ticks }, v: a.velocity, a: a.acceleration, f: a.force, m: a.movement }, ['x', 'y']);
     }
   }
 }
