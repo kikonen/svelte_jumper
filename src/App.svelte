@@ -202,9 +202,11 @@
 
     text-align: center;
     width: 100%;
+    max-width: 800px;
     height: 600px;
     margin: 0;
     position: relative;
+    margin: auto;
   }
 
   .container {
