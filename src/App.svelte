@@ -9,6 +9,8 @@
   import Material from './Material.js';
 
   import Item from './Item.js';
+
+  import Input from './Input.js';
   import PhysicsEngine from './PhysicsEngine.js';
   import {MATERIALS} from './PhysicsEngine.js';
 
@@ -22,6 +24,7 @@
   const MAX_PLATFORM = 7;
   const dispatch = createEventDispatcher();
 
+  let input;
   let engine;
 
   let container;
@@ -30,6 +33,7 @@
   let platformIds = [];
 
   let started = false;
+  let debug = false;
 
   function createPlayer() {
     let areaW = engine.getWidth();
@@ -98,8 +102,11 @@
   }
 
   function start() {
-    engine = new PhysicsEngine(dispatch);
+    input = new Input();
+    engine = new PhysicsEngine({ dispatch, input });
     engine.registerContainer(container);
+
+    engine.debug = debug;
 
     playerId = createPlayer();
     platformIds = createPlatforms();
@@ -123,6 +130,16 @@
     }, 0);
   }
 
+  function toggleDebug() {
+    debug = !debug;
+    if (engine) {
+      engine.debug = debug;
+    }
+    if (debug) {
+      console.clear();
+    }
+  }
+
   afterUpdate(function () {
   });
 
@@ -130,14 +147,14 @@
   });
 
   function handleKeydown(ev) {
-    if (engine) {
-      engine.handleKeydown(ev);
+    if (input) {
+      input.handleKeydown(ev);
     }
   }
 
   function handleKeyup(ev) {
-    if (engine) {
-      engine.handleKeyup(ev);
+    if (input) {
+      input.handleKeyup(ev);
     }
   }
 </script>
@@ -148,6 +165,8 @@
 
 <main>
   <button on:click={toggleGame}>{started ? 'Stop' : 'Start'}</button>
+  <button on:click={toggleDebug}>{debug ? 'Debug off' : 'Debug on'}</button>
+
   <div class="game">
     <div class="container" bind:this={container}>
       {#if started}

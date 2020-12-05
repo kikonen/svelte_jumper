@@ -114,32 +114,20 @@ const NOP = function() {};
 
 
 export default class PhysicsEngine {
-  constructor(dispatch) {
+  constructor({ dispatch, input }) {
     bindMethods(this);
+
+    this.debug = false;
 
     this.ticks = 0;
     this.dispatch = dispatch;
+    this.input = input;
 
     this.items = [];
 
     this.byId = new Map();
 
-    this.keys = {
-      left: false,
-      right: false,
-      up: false,
-      down: false,
-    };
-
     this.setupBoundaries();
-
-    this.keyMapping = {
-      nop: 'nop',
-      ArrowLeft: 'left',
-      ArrowRight: 'right',
-      ArrowUp: 'up',
-      ArrowDown: 'down',
-    };
   }
 
   setupBoundaries() {
@@ -238,24 +226,6 @@ export default class PhysicsEngine {
     return (this.container ? this.container.clientHeight : 600) / WORLD_SCALE;
   }
 
-  handleKeydown(event) {
-    let map = this.keyMapping;
-    let code = map[event.key] || map[event.code] || map.nop;
-    if (!this.keys[code]) {
-      this.keys[code] = true;
-//      console.log(`DOWN: ${code}`, this.keys);
-    }
-  }
-
-  handleKeyup(event) {
-    let map = this.keyMapping;
-    let code = map[event.key] || map[event.code] || map.nop;
-    if (this.keys[code]) {
-      this.keys[code] = false;
-//      console.log(`UP: ${code}`, this.keys);
-    }
-  }
-
   start() {
     if (this.started) {
       return;
@@ -307,20 +277,20 @@ export default class PhysicsEngine {
     return surface;
   }
 
-  handleKeys(dt) {
+  handleInput(dt) {
     if (!this.player) {
       return;
     }
 
     let surface = this.findSurface(this.player);
 
-    if (this.keys.left) {
+    if (this.input.keys.left) {
       this.moveLeft(this.player, dt, surface);
     }
-    if (this.keys.right) {
+    if (this.input.keys.right) {
       this.moveRight(this.player, dt, surface);
     }
-    if (this.keys.up) {
+    if (this.input.keys.up) {
       this.jump(this.player, dt, surface);
     }
   }
@@ -388,16 +358,16 @@ export default class PhysicsEngine {
 
     this.updateBoundaries();
 
-    this.handleKeys(timeScale);
-    this.clearItems();
-    this.applyForces();
+    this.handleInput(timeScale);
+    this.clearItems(timeScale);
+    this.applyForces(timeScale);
     this.tickItems(timeScale);
 
     this.currentTime = now;
     setTimeout(this.tick, TICK_SPEED);
   }
 
-  clearItems() {
+  clearItems(dt) {
     let items = this.items;
     let size = items.length;
 
@@ -407,17 +377,19 @@ export default class PhysicsEngine {
       a.force.reset(0, 0);
       a.acceleration = a.acceleration.zeroIfBelow(MIN_ACCELERATION);
       a.velocity = a.velocity.zeroIfBelow(MIN_VELOCITY);
+
+      this.debugItem(a, dt, "CLEAR");
     }
   }
 
-  tickItems(timeScale) {
+  tickItems(dt) {
     let items = this.items;
     let size = items.length;
 
     for (let i = 0; i < size; i++) {
       let a = items[i];
       if (a.force.isPresent() || a.velocity.isPresent() || a.acceleration.isPresent()) {
-        this.updatePosition(a, timeScale);
+        this.updatePosition(a, dt);
       }
 
       for (let j = i + 1; j < size; j++) {
@@ -427,16 +399,15 @@ export default class PhysicsEngine {
         }
 
         if (a.intersect(b, COLLISION_TOLERANCE)) {
-          this.resolveCollision(a, b, COLLISION_TOLERANCE);
+          this.resolveCollision(a, b, COLLISION_TOLERANCE, dt);
         }
       }
-      if (false && a.player) {
-        console.log(`vy=${a.velocity.y},  ay=${a.acceleration.y}`);
-      }
+
+      this.debugItem(a, dt, "TICK-A");
     }
   }
 
-  applyForces() {
+  applyForces(dt) {
     let items = this.items;
     let size = items.length;
 
@@ -449,17 +420,17 @@ export default class PhysicsEngine {
           continue;
         }
 
-        this.applyFrictionForce(a, b);
-        this.applyGravityForce(a, b);
+        this.applyFrictionForce(a, b, dt);
+        this.applyGravityForce(a, b, dt);
       }
     }
   }
 
-  applyFrictionForce(a, b) {
-    if (a.player && b.platform) {
-//      console.log(a.intersect(b, FRICTION_TOLERANCE), a.shape.max.y, b.shape.min.y);
-    }
-
+  /**
+   * https://gamedevelopment.tutsplus.com/tutorials/how-to-create-a-custom-2d-physics-engine-friction-scene-and-jump-table--gamedev-7765
+   * https://gamedev.stackexchange.com/questions/37889/friction-in-2d-game
+   */
+  applyFrictionForce(a, b, dt) {
     if (!a.intersect(b, FRICTION_TOLERANCE)) {
       return;
     }
@@ -477,6 +448,9 @@ export default class PhysicsEngine {
     if (t.isEmpty() || t.isInfinity()) {
       return;
     }
+
+    this.debugItem(a, dt, "FRICTION-START-A");
+    this.debugItem(b, dt, "FRICTION-START-B");
 
     let ma = col.materialA;
     let mb = col.materialB;
@@ -501,10 +475,11 @@ export default class PhysicsEngine {
 
 //    console.log(impulse.multiply(boxB.massI).x);
 
-//    console.log(`a.friction = ${ma.friction}, b.friction = ${mb.friction} => ${f}`);
+    this.debugItem(a, dt, "FRICTION-END-A");
+    this.debugItem(b, dt, "FRICTION-END-B");
   }
 
-  applyGravityForce(a, b) {
+  applyGravityForce(a, b, dt) {
     if (!a.gravity || !b.gravity) {
       return;
     }
@@ -540,10 +515,13 @@ export default class PhysicsEngine {
       a.force = a.force.plus(df.multiply(a.gravityModifier));
     }
     b.force = b.force.minus(df.multiply(b.gravityModifier));
+
+    this.debugItem(a, dt, "GRAVITY-A");
+    this.debugItem(b, dt, "GRAVITY-B");
   }
 
-  resolveCollision(a, b) {
-    let col = this.calculateCollision(a, b, COLLISION_TOLERANCE);
+  resolveCollision(a, b, tolerance, dt) {
+    let col = this.calculateCollision(a, b, tolerance);
     let boxA = a.shape;
     let boxB = b.shape;
 
@@ -583,6 +561,9 @@ export default class PhysicsEngine {
     }
     a.acceleration.reset(0, 0);
     b.acceleration.reset(0, 0);
+
+    this.debugItem(a, dt, "COLL-A");
+    this.debugItem(b, dt, "COLL-B");
   }
 
   calculateCollision(a, b, tolerance) {
@@ -680,16 +661,9 @@ export default class PhysicsEngine {
   }
 
   updatePosition(a, dt) {
-    let dbg = true;
     let boxA = a.shape;
 
-    if (dbg) {
-      console.log(`=========${a.label} - ${this.ticks} - ${dt}`);
-      console.log(`f=${a.force}`);
-      console.log(`m=${a.movement}`);
-      console.log(`v=${a.velocity}`);
-      console.log(`a=${a.acceleration}`);
-    }
+    this.debugItem(a, dt, "UPDATE-START");
 
     let acceleration;
     {
@@ -733,14 +707,31 @@ export default class PhysicsEngine {
     let movement = new Vector(velocity.x * dt, velocity.y * dt);
     a.move(movement);
 
-    if (dbg) {
-      console.log(`-------${a.label} - ${this.ticks} - ${dt}`);
-      console.log(`f=${a.force}`);
-      console.log(`m=${a.movement}`);
-      console.log(`v=${a.velocity}`);
-      console.log(`a=${a.acceleration}`);
-    }
+    this.debugItem(a, dt, "UPDATE-END");
 
     a.movement.reset(0, 0);
+  }
+
+  debugItem(a, dt, label) {
+    if (!this.debug) {
+      return;
+    }
+
+    let mark = `${label}-${a.label}`;
+    if (false) {
+      console.log(`${mark} ${this.ticks} - ${dt} -----`);
+      console.log(`${mark} f=${a.force}`);
+      console.log(`${mark} m=${a.movement}`);
+      console.log(`${mark} v=${a.velocity}`);
+      console.log(`${mark} a=${a.acceleration}`);
+    }
+
+    if (true) {
+      console.log(`${mark} ${this.ticks} - ${dt}\nv=${a.velocity} - a=${a.acceleration}\nf=${a.force} - m=${a.movement}`);
+    }
+
+    if (false) {
+      console.table({ e: { x: mark, y: this.ticks }, v: a.velocity, a: a.acceleration, f: a.force, m: a.movement }, ['x', 'y']);
+    }
   }
 }
