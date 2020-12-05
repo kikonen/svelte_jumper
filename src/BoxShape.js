@@ -103,29 +103,39 @@ export default class BoxShape {
     let x1 = newMax.x;
     let y1 = newMax.y;
 
-    let minX = this.limits.min.x || area.min.x;
-    let maxX = this.limits.max.x || area.max.x;
-    let minY = this.limits.min.y || area.min.y;
-    let maxY = this.limits.max.y || area.max.y;
+    let minX = this.limits.min.x;// || area.min.x;
+    let maxX = this.limits.max.x;// || area.max.x;
+    let minY = this.limits.min.y;// || area.min.y;
+    let maxY = this.limits.max.y;// || area.max.y;
 
-    if (x0 < minX) {
+    let hit = new Vector();
+
+    if (minX && x0 <= minX) {
       let diffX = x0 - minX;
       x0 -= diffX;
       x1 -= diffX;
-    } else if (x1 > maxX) {
+
+      hit.x = -1;
+    } else if (maxX && x1 >= maxX) {
       let diffX = x1 - maxX;
       x0 -= diffX;
       x1 -= diffX;
+
+      hit.x = 1;
     }
 
-    if (y0 < minY) {
+    if (minY && y0 <= minY) {
       let diffY = y0 - minY;
       y0 -= diffY;
       y1 -= diffY;
-    } else if (y1 > maxY) {
+
+      hit.y = -1;
+    } else if (maxY && y1 >= maxY) {
       let diffY = y1 - maxY;
       y0 -= diffY;
       y1 -= diffY;
+
+      hit.y = 1;
     }
 
     this.min = new Vector(x0, y0);
@@ -137,5 +147,7 @@ export default class BoxShape {
 
     this.display.min.reset(this.min.x * WORLD_SCALE, this.min.y * WORLD_SCALE);
     this.display.max.reset(this.max.x * WORLD_SCALE, this.max.y * WORLD_SCALE);
+
+    return hit;
   }
 }

@@ -77,6 +77,22 @@ export default class Item {
       return;
     }
 
-    this.shape.move(movement, this.engine.area);
+    let hit = this.shape.move(movement, this.engine.area);
+
+    if (this.acceleration.signX() == hit.x) {
+      this.acceleration.resetX(0);
+    }
+
+    if (this.velocity.signX() == hit.x) {
+      this.velocity.resetX(0);
+    }
+
+    if (this.acceleration.signY() == hit.y) {
+      this.acceleration.resetY(0);
+    }
+
+    if (this.velocity.signY() == hit.y) {
+      this.velocity.resetY(0);
+    }
   }
 }
