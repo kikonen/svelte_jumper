@@ -35,6 +35,7 @@ const START_FALL_VELOCITY = new Vector(0, 2);
 
 const FRICTION_TOLERANCE = 0.1;
 const COLLISION_TOLERANCE = 0;
+const SURFACE_TOLERANCE = 0.1;
 
 const FRICTION_STATIC_VELOCITY = 0.01;
 
@@ -267,10 +268,10 @@ export default class PhysicsEngine {
 
     for (let i = 0; i < size; i++) {
       let b = items[i];
-      if (a === b || !a.intersect(b, COLLISION_TOLERANCE)) {
+      if (a === b || !a.intersect(b, SURFACE_TOLERANCE)) {
         continue;
       }
-      let col = this.calculateCollision(a, b, COLLISION_TOLERANCE);
+      let col = this.calculateCollision(a, b, SURFACE_TOLERANCE);
       if (col.normal && col.normal.y > 0) {
         surface = b;
         break;
