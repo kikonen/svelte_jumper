@@ -596,6 +596,16 @@ export default class PhysicsEngine {
     this.debugItem(b, dt, "GRAVITY-B");
   }
 
+  reflectOverlap(a, b, col, dt) {
+    if (a.world) {
+      let reflect = new Vector(col.overlap.x * col.normal.x, col.overlap.y * col.normal.y);
+      b.move(reflect);
+    } else {
+      let reflect = new Vector(col.overlap.x * col.normal.x * -1, col.overlap.y * col.normal.y * -1);
+      a.move(reflect);
+    }
+  }
+
   resolveCollision(a, b, tolerance, dt) {
     let col = this.calculateCollision(a, b, tolerance);
     let boxA = a.shape;
@@ -605,10 +615,16 @@ export default class PhysicsEngine {
       return;
     }
 
+    // NOTE KI do sinking into other element
+    this.reflectOverlap(a, b, col, dt);
+
     // Do not resolve if velocities are separating
     if (col.velocityAlongNormal > 0) {
       return;
     }
+
+    this.debugItem(a, dt, "COLL-START-A");
+    this.debugItem(b, dt, "COLL-START-B");
 
     // Apply impulse
     let impulse = col.normal.multiply(col.j);
@@ -619,27 +635,27 @@ export default class PhysicsEngine {
     }
     b.velocity = b.velocity.plus(impulse.multiply(boxB.massI));
 
-    if (a.world) {
-      let reflect = new Vector(col.overlap.x * col.normal.x, col.overlap.y * col.normal.y);
-      b.move(reflect);
-    } else {
-      let reflect = new Vector(col.overlap.x * col.normal.x * -1, col.overlap.y * col.normal.y * -1);
-      a.move(reflect);
-    }
-
-    // NOTE KI collision kills acceleration
+    // NOTE KI collision kills acceleration into direction of normal
     if (col.normal.x === 0) {
-      a.acceleration.reset(0, a.acceleration.y);
-      b.acceleration.reset(0, b.acceleration.y);
+      if (a.acceleration.signX() === col.normal.signX()) {
+        a.acceleration.reset(0, a.acceleration.y);
+      }
+      if (b.acceleration.signX() !== col.normal.signX()) {
+        b.acceleration.reset(0, b.acceleration.y);
+      }
     } else {
-      a.acceleration.reset(a.acceleration.x, 0);
-      b.acceleration.reset(b.acceleration.x, 0);
+      if (a.acceleration.signY() === col.normal.signY()) {
+        a.acceleration.reset(a.acceleration.x, 0);
+      }
+      if (b.acceleration.signY() !== col.normal.signY()) {
+        b.acceleration.reset(b.acceleration.x, 0);
+      }
     }
     a.acceleration.reset(0, 0);
     b.acceleration.reset(0, 0);
 
-    this.debugItem(a, dt, "COLL-A");
-    this.debugItem(b, dt, "COLL-B");
+    this.debugItem(a, dt, "COLL-END-A");
+    this.debugItem(b, dt, "COLL-EBD-B");
   }
 
   calculateCollision(a, b, tolerance) {

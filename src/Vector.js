@@ -37,6 +37,20 @@ export default class Vector {
     return new Vector(this.x /= magnitude, this.y /= magnitude);
   }
 
+  signX() {
+    if (this.x === 0) {
+      return 0;
+    }
+    return this.x < 0 ? -1 : 1;
+  }
+
+  signY() {
+    if (this.y === 0) {
+      return 0;
+    }
+    return this.y < 0 ? -1 : 1;
+  }
+
   reverse() {
     return new Vector(-this.x, -this.y);
   }

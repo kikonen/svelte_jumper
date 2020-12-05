@@ -11,6 +11,7 @@ export default class Collision {
     normal,
     rv,
     velocityNormal,
+    velocityAlongNormal,
     materialA,
     materialB,
     e,
@@ -24,7 +25,10 @@ export default class Collision {
     this.normal = normal || new Vector();
 
     this.rv = rv;
+
     this.velocityNormal = velocityNormal;
+    this.velocityAlongNormal = velocityAlongNormal;
+
     this.materialA = materialA;
     this.materialB = materialB;
     this.e = e;

@@ -92,7 +92,7 @@
         type: 'platform',
         label: `platform-${i}`,
         shape: shape,
-        gravityModifier: -0.01,
+        gravityModifier: -0.1,
         velocity: velocity
       });
       engine.register(item);
