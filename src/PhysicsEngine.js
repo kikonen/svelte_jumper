@@ -364,8 +364,8 @@ export default class PhysicsEngine {
 
     this.updateBoundaries();
 
-    this.handleInput(timeScale);
     this.clearItems(timeScale);
+    this.handleInput(timeScale);
     this.applyForces(timeScale);
     this.tickItems(timeScale);
 
@@ -380,6 +380,7 @@ export default class PhysicsEngine {
     for (let i = 0; i < size; i++) {
       let a = items[i];
 
+      a.movement.reset(0, 0);
       a.force.reset(0, 0);
       a.acceleration = a.acceleration.zeroIfBelow(MIN_ACCELERATION);
       a.velocity = a.velocity.zeroIfBelow(MIN_VELOCITY);
@@ -802,8 +803,6 @@ export default class PhysicsEngine {
     a.move(movement);
 
     this.debugItem(a, dt, "UPDATE-END");
-
-    a.movement.reset(0, 0);
   }
 
   debugItem(a, dt, label) {
