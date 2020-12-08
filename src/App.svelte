@@ -203,7 +203,7 @@
     text-align: center;
     width: 100%;
     max-width: 800px;
-    height: 500px;
+    height: 550px;
     margin: 0;
     position: relative;
     margin: auto;
