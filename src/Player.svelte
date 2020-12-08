@@ -67,7 +67,7 @@
     class:right={dirRight}
     class:up={dirUp}
     class:down={dirDown}
-    src="../game/stick_run.png" />
+    src="../svelte_jumper/stick_run.png" />
 </player>
 
 <style>

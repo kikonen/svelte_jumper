@@ -49,7 +49,7 @@
   platform {
     background-color: gray;
     background-color: lightgray;
-    background-image: url('../game/platform.jpg');
+    background-image: url('../svelte_jumper/platform.jpg');
     background-repeat: repeat;
     background-size: 100px;
     background-position: left top;

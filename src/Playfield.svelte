@@ -22,7 +22,7 @@
 <style>
   playfield {
     background-color: lightgray;
-    background-image: url('../game/wall.jpg');
+    background-image: url('../svelte_jumper/wall.jpg');
     background-repeat: repeat;
     background-size: 800px;
     background-position: left top;
